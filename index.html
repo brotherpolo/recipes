@@ -147,7 +147,7 @@ ul.list, ol.list { list-style: none; margin: 0; padding: 0; display: grid; }
 .qty { font-weight: 400; }
 .step .check { grid-template-columns: 22px minmax(0, 1fr); padding: 14px 0; }
 .step .num { display: block; font-size: 11px; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; letter-spacing: .1em; }
-.step.current { box-shadow: inset 3px 0 0 var(--basil); background: var(--basil-soft); margin: 0 -14px; padding: 0 14px; }
+.step.current { box-shadow: inset 3px 0 0 var(--basil); background: var(--basil-soft); margin-left: -14px; padding-left: 14px; }
 .step.current .num { color: var(--basil); }
 .notes { font-size: 17px; color: var(--muted); }
 .notes ul { margin: 6px 0 0; padding-left: 20px; }
@@ -442,7 +442,7 @@ function cardGroups(doc) {
     group: decode((g.querySelector(".wprm-recipe-group-name") || {}).textContent),
     items: [...g.querySelectorAll("li.wprm-recipe-ingredient")].map(li => {
       const c = li.cloneNode(true);
-      c.querySelectorAll(".wprm-checkbox-container, .wprm-recipe-ingredient-notes-faded").forEach(x => x.remove());
+      c.querySelectorAll(".wprm-checkbox-container").forEach(x => x.remove());
       return decode(c.textContent).replace(/^▢\s*/, "").replace(/\s+,/g, ",");
     }).filter(Boolean)
   }));
@@ -702,7 +702,7 @@ function show(recipe) {
   const stepHTML = r.steps.map((s, i) => {
     let head = "";
     if (s.group && s.group !== lastGroup) { head = `<li class="subhead">${esc(s.group)}</li>`; lastGroup = s.group; }
-    return head + `<li class="step" data-step="${i}">${checkRow(`s-${i}`, `<span class="txt"><span class="num">Step ${String(i + 1).padStart(2, "0")}</span>${esc(s.text)}</span>`)}</li>`;
+    return head + `<li class="step" data-step="${i}">${checkRow(`s-${i}`, `<span class="txt"><span class="num">Step ${String(i + 1).padStart(2, "0")}</span>${esc(tidyAmounts(s.text))}</span>`)}</li>`;
   }).join("");
 
   $("recipe").innerHTML = `
@@ -771,7 +771,18 @@ function show(recipe) {
 function checkRow(id, inner) {
   return `<label class="check" for="${id}"><input type="checkbox" id="${id}"><span class="box">${CHECK_SVG}</span>${inner}</label>`;
 }
+// The handwriting font has no ½-style glyphs, so write fractions out: "1 ½" -> "1 1/2", "0.5 cup" -> "1/2 cup".
+const FRACS = { "½": "1/2", "¼": "1/4", "¾": "3/4", "⅓": "1/3", "⅔": "2/3", "⅛": "1/8", "⅜": "3/8", "⅝": "5/8", "⅞": "7/8", "⅕": "1/5", "⅙": "1/6" };
+const DECS = { "0.5": "1/2", "0.25": "1/4", "0.75": "3/4", "0.33": "1/3", "0.333": "1/3", "0.67": "2/3", "0.66": "2/3", "0.125": "1/8" };
+function tidyAmounts(t) {
+  return String(t)
+    .replace(/(\d)\s*([½¼¾⅓⅔⅛⅜⅝⅞⅕⅙])/g, (_, d, f) => d + " " + FRACS[f])
+    .replace(/[½¼¾⅓⅔⅛⅜⅝⅞⅕⅙]/g, f => FRACS[f])
+    .replace(/(^|[^\d.])(0\.(?:5|25|75|333?|67|66|125))(?=\s|$)/g, (_, a, d) => a + DECS[d])
+    .replace(/\s+([,;)])/g, "$1");
+}
 function boldQty(text) {
+  text = tidyAmounts(text);
   const m = String(text).match(/^((?:[\d½¼¾⅓⅔⅛\/.\-–]+\s*)+(?:(?:tbsp|tsp|cups?|oz|ounces?|lbs?|pounds?|g|grams?|kg|ml|l|tablespoons?|teaspoons?|cloves?|cans?|pinch(?:es)?|sprigs?|ribs?|sticks?|large|small|medium)\b\.?)?)(.*)$/i);
   if (!m || !m[1].trim()) return esc(text);
   return `<span class="qty">${esc(m[1])}</span>${esc(m[2])}`;
