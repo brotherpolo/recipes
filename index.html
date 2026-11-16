@@ -186,6 +186,58 @@ ul.list, ol.list { list-style: none; margin: 0; padding: 0; display: grid; }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } .bar span, .box svg path { transition: none; } }
 @media print { .finder, .actions, .jump, header.top, .progress { display: none; } body { background: #fff; color: #000; } }
 
+
+/* timers */
+.tbtn { display: inline-flex; align-items: center; gap: 4px; vertical-align: baseline; font: inherit; text-transform: none; letter-spacing: 0; color: var(--basil); background: var(--basil-soft); border: 0; border-bottom: 1px dashed var(--basil); padding: 0 4px; margin: 0 1px; cursor: pointer; line-height: inherit; }
+.tbtn svg { width: .8em; height: .8em; flex: none; }
+.tbtn:hover { background: color-mix(in srgb, var(--basil) 16%, transparent); }
+.tbtn.started { outline: 2px solid var(--basil); }
+.check input:checked ~ .txt .tbtn { color: var(--muted); border-color: var(--muted); background: none; }
+.tray { position: fixed; z-index: 60; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); width: min(360px, calc(100vw - 32px)); background: var(--paper); border: 1.5px solid var(--rule); display: grid; box-shadow: 0 10px 30px rgba(0,0,0,.12); }
+.tray[hidden] { display: none; }
+.trow { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; }
+.trow + .trow { border-top: 1px solid var(--line); }
+.tinfo { display: grid; gap: 2px; min-width: 0; }
+.tlabel { font: 500 10px/1.3 var(--label); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tleft { font: 700 30px/1 var(--script); font-variant-numeric: tabular-nums; }
+.trow.paused .tleft { color: var(--muted); }
+.trow.ding { background: var(--basil-soft); }
+.trow.ding .tleft { color: var(--basil); animation: ding 1s steps(2) infinite; }
+@keyframes ding { 50% { opacity: .35; } }
+.tacts { display: flex; gap: 6px; flex: none; }
+.tacts button { padding: 7px 9px; font-size: 10px; }
+body { padding-bottom: var(--tray-h, 0px); }
+
+/* cook mode */
+html.cooking { overflow: hidden; }
+.cook { position: fixed; inset: 0; z-index: 50; background: var(--paper); display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; overflow: hidden; }
+.cook[hidden] { display: none; }
+.cook-top { display: flex; align-items: baseline; gap: 16px; padding: 14px 24px 12px; padding-top: max(14px, env(safe-area-inset-top)); max-width: 860px; width: 100%; margin: 0 auto; }
+.cook-title { font: 700 24px/1.1 var(--script); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cook-pos { font: 500 11px/1 var(--label); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.cook-bar { height: 2px; background: var(--line); }
+.cook-bar span { display: block; height: 100%; width: 0; background: var(--ink); transition: width .3s ease; }
+.cook-body { overflow-y: auto; padding: 28px 24px 24px; max-width: 860px; width: 100%; margin: 0 auto; }
+.cook-group { margin: 0 0 6px; font: 500 11px/1.3 var(--label); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.cook-num { margin: 0 0 10px; font: 500 12px/1 var(--label); letter-spacing: .14em; text-transform: uppercase; color: var(--basil); }
+.cook-ticked { color: var(--muted); }
+.cook-text { margin: 0; font: 400 clamp(28px, 4.2vw, 40px)/1.35 var(--hand); }
+.cook-need { margin-top: 32px; }
+.cook-need h4 { font: 500 11px/1 var(--label); letter-spacing: .14em; text-transform: uppercase; padding-bottom: 8px; border-bottom: 2px solid var(--rule); }
+.cook-done { display: grid; gap: 24px; justify-items: start; padding-top: 6vh; }
+.cook-fin { margin: 0; font: 700 clamp(44px, 8vw, 72px)/1.05 var(--script); color: var(--basil); }
+.cook-nav { display: flex; gap: 10px; padding: 12px 24px; padding-bottom: calc(max(12px, env(safe-area-inset-bottom)) + var(--tray-h, 0px)); border-top: 1px solid var(--line); max-width: 860px; width: 100%; margin: 0 auto; }
+.cook-nav button { flex: 1; padding: 16px; font-size: 13px; }
+.cook-nav .primary { flex: 2; }
+.cook-nav button:disabled { opacity: .35; cursor: default; }
+.toolrow .primary { order: -1; }
+@media (max-width: 760px) {
+  .tray { left: 0; right: 0; bottom: 0; width: auto; border-width: 1.5px 0 0; box-shadow: 0 -8px 24px rgba(0,0,0,.1); padding-bottom: env(safe-area-inset-bottom); }
+  .cook-top, .cook-body, .cook-nav { padding-left: max(20px, env(safe-area-inset-left)); padding-right: max(20px, env(safe-area-inset-right)); }
+  .toolrow .primary { flex-basis: 100%; padding: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .trow.ding .tleft { animation: none; } .cook-bar span { transition: none; } }
+
 /* phones & tablets */
 .jump { display: none; }
 .touch-only { display: none; }
@@ -296,6 +348,22 @@ ul.list, ol.list { list-style: none; margin: 0; padding: 0; display: grid; }
     <ul id="savedList" class="slist"></ul>
   </section>
 </main>
+
+<aside id="timerTray" class="tray" aria-label="Timers" aria-live="polite" hidden></aside>
+
+<div id="cook" class="cook" role="dialog" aria-modal="true" aria-labelledby="cookTitle" hidden>
+  <header class="cook-top">
+    <span id="cookTitle" class="cook-title"></span>
+    <span id="cookPos" class="cook-pos"></span>
+    <button id="cookClose" class="linkish" type="button">Close</button>
+  </header>
+  <div class="cook-bar"><span id="cookBar"></span></div>
+  <div class="cook-body" id="cookBody"></div>
+  <footer class="cook-nav">
+    <button id="cookPrev" class="ghost" type="button">‹ Back</button>
+    <button id="cookNext" class="primary" type="button">Done · Next ›</button>
+  </footer>
+</div>
 
 <script>
 "use strict";
@@ -714,7 +782,7 @@ function show(recipe) {
   const stepHTML = r.steps.map((s, i) => {
     let head = "";
     if (s.group && s.group !== lastGroup) { head = `<li class="subhead">${esc(s.group)}</li>`; lastGroup = s.group; }
-    return head + `<li class="step" data-step="${i}">${checkRow(`s-${i}`, `<span class="txt"><span class="num">Step ${String(i + 1).padStart(2, "0")}</span>${esc(tidyAmounts(s.text))}</span>`)}</li>`;
+    return head + `<li class="step" data-step="${i}">${checkRow(`s-${i}`, `<span class="txt"><span class="num">Step ${String(i + 1).padStart(2, "0")}</span>${timerize(esc(tidyAmounts(s.text)), i)}</span>`)}</li>`;
   }).join("");
 
   $("recipe").innerHTML = `
@@ -742,6 +810,7 @@ function show(recipe) {
       <nav class="jump" aria-label="Jump to"><a href="#ingH">Ingredients</a><a href="#stepH">Steps</a><a href="#" id="jumpNext">Next step</a></nav>
     </div>
     <div class="actions toolrow">
+      <button class="primary" type="button" id="cookBtn">Start cooking</button>
       ${"wakeLock" in navigator ? '<button class="ghost wake" type="button" id="wakeBtn" aria-pressed="false">Keep screen on</button>' : ""}
       <button class="ghost" type="button" id="copyList">Copy shopping list</button>
       <button class="ghost" type="button" id="resetBtn">Untick everything</button>
@@ -785,6 +854,7 @@ function show(recipe) {
     catch { e.target.textContent = "Couldn't copy"; }
     setTimeout(() => e.target.textContent = "Copy shopping list", 1800);
   });
+  $("cookBtn").addEventListener("click", openCook);
   $("scaleDown").addEventListener("click", () => stepScale(-1));
   $("scaleUp").addEventListener("click", () => stepScale(1));
   $("scaleReset").addEventListener("click", () => setScale(1));
@@ -908,7 +978,251 @@ function updateProgress() {
   $("ptext").textContent = next === -1 ? "Finished" : `Up next: step ${next + 1} of ${r.steps.length}`;
   document.querySelectorAll(".step").forEach(li => li.classList.toggle("current", +li.dataset.step === next));
   $("doneMsg").classList.toggle("show", next === -1 && r.steps.length > 0);
+  const cb = $("cookBtn");
+  if (cb) cb.textContent = next === -1 ? "Cook again" : stepDone ? `Continue cooking · step ${next + 1}` : "Start cooking";
 }
+
+/* ================= Step timers ================= */
+const WORDNUM = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, fifteen: 15, twenty: 20, thirty: 30, "forty-five": 45, forty: 40, ninety: 90 };
+const DUR_RE = /\b(\d+(?:\.\d+)?(?:\s+1\/2)?|1\/2|an?|one|two|three|four|five|six|seven|eight|nine|ten|fifteen|twenty|thirty|forty-five|forty|ninety)(\s*(?:-|–|to|or)\s*(\d+(?:\.\d+)?))?\s*(seconds?|secs?|minutes?|mins?|hours?|hrs?)\b/gi;
+const CLOCK_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="9" r="5.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M8 6v3.2l2 1.3M6.5 1.8h3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
+function durNum(t) {
+  t = String(t).toLowerCase().trim();
+  if (t in WORDNUM) return WORDNUM[t];
+  if (t === "1/2") return 0.5;
+  const m = t.match(/^(\d+(?:\.\d+)?)(?:\s+1\/2)?$/);
+  return m ? parseFloat(m[1]) + (/1\/2$/.test(t) ? 0.5 : 0) : NaN;
+}
+const unitSecs = u => /^h/i.test(u) ? 3600 : /^m/i.test(u) ? 60 : 1;
+// Turn "sear for 6-8 minutes" into a tappable timer button. Works on already-escaped HTML.
+function timerize(html, stepIdx) {
+  return html.replace(DUR_RE, (m, a, range, b, unit) => {
+    const secs = Math.round(durNum(a) * unitSecs(unit));
+    if (!secs || secs > 24 * 3600) return m;
+    return `<button type="button" class="tbtn" data-secs="${secs}" data-step="${stepIdx}" data-label="${m}">${CLOCK_SVG}<span>${m}</span></button>`;
+  });
+}
+
+let timers = store.get("timers", []);
+let tickHandle = null, actx = null, ringHandle = null;
+const pad2 = n => String(n).padStart(2, "0");
+function fmtLeft(ms) {
+  const s = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  return h ? `${h}:${pad2(m)}:${pad2(sec)}` : `${m}:${pad2(sec)}`;
+}
+const leftOf = t => t.paused != null ? t.paused : t.end - Date.now();
+function saveTimers() { store.set("timers", timers); }
+function unlockAudio() {
+  try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); if (actx.state !== "running") actx.resume(); } catch {}
+}
+function beep() {
+  if (!actx) return;
+  const t0 = actx.currentTime;
+  [0, 0.22, 0.44].forEach(d => {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = "sine"; o.frequency.value = 880;
+    o.connect(g); g.connect(actx.destination);
+    g.gain.setValueAtTime(0.0001, t0 + d);
+    g.gain.exponentialRampToValueAtTime(0.35, t0 + d + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + d + 0.18);
+    o.start(t0 + d); o.stop(t0 + d + 0.2);
+  });
+  try { navigator.vibrate && navigator.vibrate([250, 120, 250]); } catch {}
+}
+function startTimer(secs, label, step) {
+  unlockAudio();
+  const title = current && current.recipe ? current.recipe.title : "";
+  timers.push({ id: String(Date.now()) + Math.random().toString(36).slice(2, 6), label, step: +step, title, total: secs * 1000, end: Date.now() + secs * 1000, paused: null, done: false });
+  saveTimers(); renderTray(); ensureTick();
+  if ("wakeLock" in navigator && !wantWake) { wantWake = true; grabWake(); }
+}
+function ensureTick() {
+  if (!tickHandle && timers.length) tickHandle = setInterval(tick, 250);
+  if (tickHandle && !timers.length) { clearInterval(tickHandle); tickHandle = null; }
+}
+function tick() {
+  let changed = false;
+  for (const t of timers) {
+    if (!t.done && t.paused == null && t.end <= Date.now()) { t.done = true; changed = true; }
+    const el = document.querySelector(`[data-tleft="${t.id}"]`);
+    if (el) el.textContent = t.done ? "Done" : fmtLeft(leftOf(t));
+  }
+  if (changed) { saveTimers(); renderTray(); }
+  const ringing = timers.some(t => t.done);
+  if (ringing && !ringHandle) { beep(); ringHandle = setInterval(beep, 1600); }
+  if (!ringing && ringHandle) { clearInterval(ringHandle); ringHandle = null; }
+  document.title = ringing ? "Timer done · Recipe Checklist" : "Recipe Checklist";
+}
+function renderTray() {
+  const tray = $("timerTray");
+  tray.hidden = !timers.length;
+  tray.innerHTML = timers.map(t => `
+    <div class="trow${t.done ? " ding" : ""}${t.paused != null ? " paused" : ""}">
+      <div class="tinfo"><span class="tlabel">Step ${pad2(t.step + 1)} · ${esc(t.label)}</span><span class="tleft" data-tleft="${t.id}">${t.done ? "Done" : fmtLeft(leftOf(t))}</span></div>
+      <div class="tacts">
+        ${t.done ? `<button type="button" class="primary" data-tact="ok" data-id="${t.id}">OK</button>` : `
+        <button type="button" class="ghost" data-tact="plus" data-id="${t.id}">+1 min</button>
+        <button type="button" class="ghost" data-tact="pause" data-id="${t.id}">${t.paused != null ? "Resume" : "Pause"}</button>
+        <button type="button" class="ghost" data-tact="cancel" data-id="${t.id}" aria-label="Cancel timer">✕</button>`}
+      </div>
+    </div>`).join("");
+  document.documentElement.style.setProperty("--tray-h", (timers.length ? tray.offsetHeight : 0) + "px");
+  ensureTick();
+}
+$("timerTray").addEventListener("click", e => {
+  const b = e.target.closest("[data-tact]"); if (!b) return;
+  unlockAudio();
+  const t = timers.find(x => x.id === b.dataset.id); if (!t) return;
+  const act = b.dataset.tact;
+  if (act === "ok" || act === "cancel") timers = timers.filter(x => x !== t);
+  if (act === "plus") { if (t.paused != null) t.paused += 60000; else t.end += 60000; }
+  if (act === "pause") { if (t.paused != null) { t.end = Date.now() + t.paused; t.paused = null; } else t.paused = Math.max(0, t.end - Date.now()); }
+  saveTimers(); renderTray(); tick();
+});
+// Timer buttons live inside the step's tick-box label: stop the tap from ticking the step.
+document.addEventListener("click", e => {
+  const b = e.target.closest(".tbtn"); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  startTimer(+b.dataset.secs, b.dataset.label, b.dataset.step);
+  b.classList.add("started"); setTimeout(() => b.classList.remove("started"), 900);
+}, true);
+// Timers carry on across reloads (they count from a fixed end time).
+timers.forEach(t => { if (!t.done && t.paused == null && t.end <= Date.now()) t.done = true; });
+renderTray(); tick();
+
+/* ================= Cook mode ================= */
+let cookIdx = 0;
+const COOK_STOP = new Set("a an the of and or for to taste fresh freshly large small medium chopped minced diced sliced grated ground whole boneless skinless bone-in skin-on extra virgin kosher packed divided optional room temperature finely roughly thinly cut into pieces plus more about cold warm hot melted softened dried can cans jar juice zest your favorite good quality store-bought homemade".split(" "));
+const COOK_UNITS = /^(?:tbsp|tsp|tablespoons?|teaspoons?|cups?|c|oz|ounces?|lbs?|pounds?|g|grams?|kg|ml|l|liters?|litres?|quarts?|pints?|sticks?|pinch(?:es)?|dash(?:es)?|cloves?|sprigs?|ribs?|stalks?|slices?|bunch(?:es)?|handfuls?|heads?|packages?|pkg)\.?$/i;
+const COLOR_WORDS = new Set(["red", "green", "yellow", "white", "black", "brown", "dark", "light", "golden"]);
+function ingWords(it) {
+  const segs = tidyAmounts(it).toLowerCase().replace(/\([^)]*\)/g, " ").split(/[,;]|\s-\s/);
+  for (const seg of segs) {
+    const words = seg.split(/[^a-z\-]+/).filter(w => w && !/^\d/.test(w) && w !== "or" && !COOK_STOP.has(w) && !COOK_UNITS.test(w));
+    if (words.some(w => !COLOR_WORDS.has(w))) return words;
+  }
+  return [];
+}
+const singular = w => w.replace(/ies$/, "y").replace(/(oes|ches|shes)$/, m => m.slice(0, -2)).replace(/s$/, "");
+// Words that appear in more than one ingredient ("pepper", "oil", "powder") only count when the step is specific.
+function sharedWords() {
+  const seen = new Map();
+  current.recipe.ingredients.forEach(g => g.items.forEach(it => new Set(ingWords(it).map(singular)).forEach(w => seen.set(w, (seen.get(w) || 0) + 1))));
+  return new Set([...seen].filter(([, n]) => n > 1).map(([w]) => w));
+}
+function ingTerms(it, shared) {
+  const words = ingWords(it);
+  if (!words.length) return [];
+  const terms = [words.join(" ")];
+  if (words.length >= 2) terms.push(words.slice(-2).join(" "));
+  words.forEach((w, i) => {
+    const one = singular(w), isLast = i === words.length - 1;
+    if (COLOR_WORDS.has(w) || one.length < 3) return;
+    if (shared.has(one)) { if (isLast) terms.push(one + "s"); return; }  // "both peppers" yes, "salt and pepper" no
+    if (one.length >= 4 || isLast) terms.push(one);
+  });
+  return [...new Set(terms)].filter(x => x.length >= 3);
+}
+const reEsc = s => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function ingredientsForStep(text) {
+  const low = " " + text.toLowerCase() + " ";
+  const shared = sharedWords();
+  const hits = [];
+  current.recipe.ingredients.forEach((g, gi) => {
+    const gWord = (g.group || "").toLowerCase().replace(/^(for )?(the )?/, "").split(/\s+/).find(w => w.length >= 4 && !COOK_STOP.has(w));
+    const groupHit = gWord && new RegExp("\\b" + reEsc(gWord)).test(low);
+    g.items.forEach((it, ii) => {
+      if (groupHit || ingTerms(it, shared).some(term => new RegExp("\\b" + reEsc(term) + "(?:e?s)?\\b").test(low))) hits.push({ gi, ii, it });
+    });
+  });
+  return hits;
+}
+function openCook() {
+  const r = current.recipe;
+  if (!r.steps.length) return;
+  unlockAudio();
+  const next = r.steps.findIndex((_, i) => !current.checks[`s-${i}`]);
+  cookIdx = next === -1 ? 0 : next;
+  $("cook").hidden = false;
+  document.documentElement.classList.add("cooking");
+  if (!(history.state && history.state.cook)) history.pushState({ cook: true }, "");
+  if ("wakeLock" in navigator && !wantWake) { wantWake = true; grabWake(); }
+  renderCook();
+  $("cookNext").focus();
+}
+function closeCook(fromHistory) {
+  if ($("cook").hidden) return;
+  $("cook").hidden = true;
+  document.documentElement.classList.remove("cooking");
+  if (!fromHistory && history.state && history.state.cook) history.back();
+  const cur = document.querySelector(".step.current");
+  if (cur) cur.scrollIntoView({ block: "center" });
+}
+window.addEventListener("popstate", () => closeCook(true));
+function renderCook() {
+  const r = current.recipe, n = r.steps.length, done = cookIdx >= n;
+  $("cookTitle").textContent = r.title;
+  $("cookPos").textContent = done ? "Finished" : `Step ${cookIdx + 1} of ${n}`;
+  $("cookBar").style.width = (Math.min(cookIdx, n) / n * 100) + "%";
+  $("cookPrev").disabled = cookIdx === 0;
+  if (done) {
+    $("cookBody").innerHTML = `<div class="cook-done"><p class="cook-fin">All done.<br>Bon appétit!</p><button type="button" class="ghost" id="cookBackToRecipe">Back to the recipe</button></div>`;
+    $("cookBackToRecipe").addEventListener("click", () => closeCook());
+    $("cookNext").hidden = true;
+    return;
+  }
+  $("cookNext").hidden = false;
+  $("cookNext").textContent = cookIdx === n - 1 ? "Done · Finish" : "Done · Next ›";
+  const s = r.steps[cookIdx], isDone = !!current.checks[`s-${cookIdx}`];
+  const need = ingredientsForStep(s.text);
+  $("cookBody").innerHTML = `
+    ${s.group ? `<p class="cook-group">${esc(s.group)}</p>` : ""}
+    <p class="cook-num">Step ${pad2(cookIdx + 1)}${isDone ? ' <span class="cook-ticked">· done</span>' : ""}</p>
+    <p class="cook-text">${timerize(esc(tidyAmounts(s.text)), cookIdx)}</p>
+    ${need.length ? `<div class="cook-need"><h4>For this step</h4><ul class="list">${need.map(h => `<li>${checkRow(`c-i-${h.gi}-${h.ii}`, `<span class="txt">${boldQty(scaleLine(h.it, current.scale))}</span>`)}</li>`).join("")}</ul></div>` : ""}`;
+  $("cookBody").querySelectorAll("input[id^='c-i-']").forEach(cb => {
+    const key = cb.id.slice(2);
+    cb.checked = !!current.checks[key];
+    cb.addEventListener("change", () => {
+      current.checks[key] = cb.checked;
+      const main = $(key); if (main) main.checked = cb.checked;
+      saveChecks(); updateProgress();
+    });
+  });
+  $("cookBody").scrollTop = 0;
+}
+function cookGo(dir) {
+  const r = current.recipe;
+  if (dir > 0 && cookIdx < r.steps.length) {
+    current.checks[`s-${cookIdx}`] = true;
+    const main = $(`s-${cookIdx}`); if (main) main.checked = true;
+    saveChecks(); updateProgress();
+  }
+  cookIdx = Math.max(0, Math.min(r.steps.length, cookIdx + dir));
+  renderCook();
+}
+$("cookNext").addEventListener("click", () => cookGo(1));
+$("cookPrev").addEventListener("click", () => cookGo(-1));
+$("cookClose").addEventListener("click", () => closeCook());
+document.addEventListener("keydown", e => {
+  if ($("cook").hidden) return;
+  if (e.key === "Escape") closeCook();
+  else if (e.key === "ArrowRight") cookGo(1);
+  else if (e.key === "ArrowLeft" && cookIdx > 0) cookGo(-1);
+});
+(function swipe() {
+  let x0 = null, y0 = null;
+  $("cookBody").addEventListener("touchstart", e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+  $("cookBody").addEventListener("touchend", e => {
+    if (x0 == null) return;
+    const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    x0 = null;
+    if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0 && cookIdx < current.recipe.steps.length) cookGo(1);
+      else if (dx > 0 && cookIdx > 0) cookGo(-1);
+    }
+  }, { passive: true });
+})();
 
 /* ================= Theme ================= */
 function applyTheme(mode) {
