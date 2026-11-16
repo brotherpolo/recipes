@@ -70,6 +70,14 @@ kbd { font: 600 13px/1 var(--body); padding: 2px 6px; border: 1px solid var(--li
 .recent { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 14px; color: var(--muted); }
 .chip { font: 500 14px/1.2 var(--body); padding: 6px 10px; border-radius: 999px; background: var(--basil-soft); color: var(--ink); border: 1px solid var(--line); }
 .recipe { display: grid; gap: 20px; }
+.helplinks { display: flex; gap: 8px 20px; flex-wrap: wrap; }
+.setup { border-top: 1px solid var(--line); padding-top: 12px; font-size: 15px; }
+.setup h4 { margin: 0 0 6px; font: 700 15px/1.3 var(--body); }
+.setup p { margin: 0 0 8px; }
+.setup ol { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+.setup code { font-size: 13px; background: var(--paper); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; word-break: break-all; }
+.bm { display: inline-block; font: 700 15px/1 var(--body); color: var(--card); background: var(--basil); padding: 10px 14px; border-radius: 999px; text-decoration: none; cursor: grab; }
+button.small { padding: 6px 10px; font-size: 14px; margin-left: 4px; }
 .rhead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; }
 .rhead .titles { display: grid; gap: 8px; }
 .rhead img { width: 140px; height: 140px; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); }
@@ -165,7 +173,36 @@ button, .check { -webkit-tap-highlight-color: transparent; touch-action: manipul
       <button id="goBtn" class="primary" type="submit">Get recipe</button>
     </form>
     <p id="status" class="status" role="status"></p>
-    <div><button id="togglePaste" class="linkish" type="button">Link not loading? Paste the page instead</button></div>
+    <div class="helplinks"><button id="toggleSend" class="linkish" type="button">Site blocked? Use the Send button</button><button id="togglePaste" class="linkish" type="button">Paste the page instead</button></div>
+    <section id="sendHelp" class="paste" aria-label="Send to Recipe Checklist button">
+      <p class="howto" style="margin:0">Some big sites (Allrecipes, Serious Eats, Simply Recipes and others) block link loading. The Send button reads the recipe from the page you already have open, so it works on those too.</p>
+      <div class="setup">
+        <h4>On a computer</h4>
+        <p>Drag this button onto your bookmarks bar (press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>B</kbd> if the bar is hidden):</p>
+        <p><a id="bookmarklet" class="bm" href="#">Send to Recipe Checklist</a></p>
+        <p>Then, on any recipe page, click it.</p>
+      </div>
+      <div class="setup">
+        <h4>On iPhone or iPad</h4>
+        <ol>
+          <li>In <b>Shortcuts</b>, tap <b>+</b> and name it <b>Send Recipe</b>.</li>
+          <li>Add <b>Run JavaScript on Web Page</b>. Replace its script with this one: <button id="copyIos" class="ghost small" type="button">Copy script</button></li>
+          <li>Add <b>URL Encode</b> (encoding the JavaScript Result).</li>
+          <li>Add <b>URL</b>: type <code>https://brotherpolo.github.io/recipes/#r=</code> and then insert <b>URL Encoded Text</b>.</li>
+          <li>Add <b>Open URLs</b>.</li>
+          <li>In the shortcut's details, turn on <b>Show in Share Sheet</b> (receiving Safari web pages). In iPhone Settings › Apps › Shortcuts › Advanced, turn on <b>Allow Running Scripts</b>.</li>
+          <li>On a recipe in Safari, tap <b>Share › Send Recipe</b>.</li>
+        </ol>
+      </div>
+      <div class="setup">
+        <h4>On Android (Chrome)</h4>
+        <ol>
+          <li>Copy the button code: <button id="copyBm" class="ghost small" type="button">Copy code</button></li>
+          <li>Bookmark any page (⋮ › ☆), then edit that bookmark: name it <b>Send Recipe</b> and paste the code as its URL.</li>
+          <li>On a recipe page, tap the address bar, type <b>Send Recipe</b>, and tap the bookmark in the list.</li>
+        </ol>
+      </div>
+    </section>
     <form id="pasteForm" class="paste">
       <p class="howto touch-only" style="margin:0">On the recipe page, press and hold on the text, choose <b>Select all</b>, then <b>Copy</b>, and paste it here.</p>
       <label for="pasteInput" class="howto mouse-only">Best: on the recipe page press <kbd>Ctrl</kbd>+<kbd>U</kbd> to view the page source, then <kbd>Ctrl</kbd>+<kbd>A</kbd>, <kbd>Ctrl</kbd>+<kbd>C</kbd> and paste here. Copying the normal page text (<kbd>Ctrl</kbd>+<kbd>A</kbd> on the page itself) also works for most recipes.</label>
@@ -245,6 +282,7 @@ function findRecipeNode(node, depth = 0) {
 }
 
 function readDuration(iso) {
+  if (iso && typeof iso === "object") iso = iso.minValue || iso.value || "";
   const m = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?)?/i.exec(String(iso || "").trim());
   if (!m) return "";
   let mins = (+(m[1] || 0)) * 1440 + (+(m[2] || 0)) * 60 + (+(m[3] || 0));
@@ -435,13 +473,13 @@ $("urlForm").addEventListener("submit", async e => {
     const recipe = await loadPage(url);
     remember(recipe); show(recipe); setStatus("");
   } catch (err) {
-    $("pasteForm").classList.add("open");
+    $(err.message === "no_fetch" ? "sendHelp" : "pasteForm").classList.add("open");
     const blockedHere = location.protocol !== "file:" && err.message === "no_fetch";
     setStatus((err.message === "no_recipe"
       ? "The page loaded but has no recipe data I can read. Paste the page below instead."
       : blockedHere
         ? "This preview can't load other websites. Save the file to your PC and double-click it to open it in Chrome or Edge."
-        : "Couldn't load that page (the site or the fetch service blocked it). Paste the page below instead.")
+        : "That site blocks link loading. Use the Send button below while you're on the recipe page, or paste the page instead.")
       + (err.detail ? `  [Details: ${err.detail}]` : ""), true);
   } finally { busy(false); }
 });
@@ -658,6 +696,92 @@ renderRecent();
 const last = store.get("recent", [])[0];
 const lastSaved = last && store.get(last.key, null);
 show(lastSaved ? lastSaved.recipe : EXAMPLE);
+
+/* ================= Send button (bookmarklet / iPhone Shortcut) ================= */
+// Runs ON the recipe site, in the viewer's own browser, so sites that block fetch services still work.
+// Returns a small JSON string: { u: page url, r: trimmed schema.org Recipe, g: ingredient groups }.
+function recipeExtractor() {
+  var A = function (v) { return v == null ? [] : Array.isArray(v) ? v : [v]; };
+  var isR = function (o) { return o && A(o["@type"]).some(function (t) { return String(t).toLowerCase() === "recipe"; }); };
+  var find = function (n, d) {
+    if (!n || typeof n !== "object" || d > 8) return null;
+    if (Array.isArray(n)) { for (var i = 0; i < n.length; i++) { var x = find(n[i], d + 1); if (x) return x; } return null; }
+    if (isR(n)) return n;
+    var ks = ["@graph", "mainEntity", "mainEntityOfPage", "itemListElement", "item"];
+    for (var j = 0; j < ks.length; j++) if (n[ks[j]]) { var y = find(n[ks[j]], d + 1); if (y) return y; }
+    return null;
+  };
+  var trimStep = function (s) {
+    if (typeof s === "string") return s;
+    if (Array.isArray(s)) return s.map(trimStep);
+    if (!s || typeof s !== "object") return s;
+    var o = { "@type": s["@type"] };
+    if (s.name) o.name = s.name;
+    if (s.text) o.text = s.text;
+    if (s.itemListElement) o.itemListElement = trimStep(s.itemListElement);
+    return o;
+  };
+  var r = null, scripts = document.querySelectorAll('script[type="application/ld+json"]');
+  for (var k = 0; k < scripts.length && !r; k++) { try { r = find(JSON.parse(scripts[k].textContent), 0); } catch (e) {} }
+  if (!r) return "";
+  var keep = { "@type": "Recipe" };
+  ["name", "recipeYield", "totalTime", "prepTime", "cookTime", "recipeIngredient"].forEach(function (f) { if (r[f] != null) keep[f] = r[f]; });
+  keep.recipeInstructions = trimStep(r.recipeInstructions);
+  var img = A(r.image)[0]; if (img && typeof img === "object") img = img.url;
+  if (typeof img === "string") keep.image = img;
+  var groups = [].map.call(document.querySelectorAll(".wprm-recipe-ingredient-group"), function (g) {
+    var h = g.querySelector(".wprm-recipe-group-name");
+    return { group: h ? h.textContent.trim() : "", items: [].map.call(g.querySelectorAll("li.wprm-recipe-ingredient"), function (li) {
+      var c = li.cloneNode(true); [].forEach.call(c.querySelectorAll(".wprm-checkbox-container"), function (x) { x.remove(); });
+      return c.textContent.replace(/\s+/g, " ").trim();
+    }) };
+  });
+  return JSON.stringify({ u: location.href, r: keep, g: groups });
+}
+const APP_URL = "https://brotherpolo.github.io/recipes/";
+const BOOKMARKLET = "javascript:" + encodeURIComponent(
+  "(function(){var j=(" + recipeExtractor.toString() + ")();" +
+  "if(!j){alert('No recipe data found on this page.');return;}" +
+  "location.href='" + APP_URL + "#r='+encodeURIComponent(j);})();");
+const IOS_SCRIPT = "var j = (" + recipeExtractor.toString() + ")();\ncompletion(j || \"none\");";
+
+$("bookmarklet").href = BOOKMARKLET;
+$("bookmarklet").addEventListener("click", e => { e.preventDefault(); setStatus("Drag the green button to your bookmarks bar. Clicking it here does nothing."); });
+async function copyText(btn, text) {
+  const label = btn.textContent;
+  try { await navigator.clipboard.writeText(text); btn.textContent = "Copied"; }
+  catch { btn.textContent = "Couldn't copy"; }
+  setTimeout(() => btn.textContent = label, 1800);
+}
+$("copyBm").addEventListener("click", e => copyText(e.currentTarget, BOOKMARKLET));
+$("copyIos").addEventListener("click", e => copyText(e.currentTarget, IOS_SCRIPT));
+$("toggleSend").addEventListener("click", () => $("sendHelp").classList.toggle("open"));
+
+function recipeFromSent(raw) {
+  let data;
+  try { data = JSON.parse(raw); } catch { return null; }
+  if (!data || !data.r) return null;
+  const html = '<html><head><script type="application/ld+json">' + JSON.stringify(data.r).replace(/</g, "\\u003c") + "<\/script></head></html>";
+  const recipe = parseRecipe(html, data.u || "");
+  if (!recipe) return null;
+  const g = (data.g || []).map(x => ({ group: decode(x.group), items: (x.items || []).map(decode).filter(Boolean) })).filter(x => x.items.length);
+  const had = recipe.ingredients.reduce((n, x) => n + x.items.length, 0);
+  const got = g.reduce((n, x) => n + x.items.length, 0);
+  if ((g.length > 1 || (g[0] && g[0].group)) && (!had || got >= had * 0.8)) recipe.ingredients = g;
+  return recipe;
+}
+
+(function handleSent() {
+  if (!location.hash.startsWith("#r=")) return;
+  let raw = location.hash.slice(3);
+  try { raw = decodeURIComponent(raw); } catch {}
+  history.replaceState(null, "", location.pathname);
+  if (raw === "none" || !raw) { setStatus("No recipe data was found on that page. Try pasting the page instead.", true); $("pasteForm").classList.add("open"); return; }
+  const recipe = recipeFromSent(raw);
+  if (!recipe) { setStatus("That recipe came through garbled. Try the Send button again.", true); return; }
+  if (recipe.source) $("urlInput").value = recipe.source;
+  remember(recipe); show(recipe); setStatus("");
+})();
 
 /* ================= Links shared from another app ================= */
 // Android's share sheet (installed app) and the iPhone Shortcut open ./?url=… or ./?text=…
