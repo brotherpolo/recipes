@@ -1,5 +1,5 @@
 // Keeps the app itself available offline. Recipe fetches go straight to the network.
-const CACHE = "recipe-checklist-v5";
+const CACHE = "recipe-checklist-v6";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png"];
 
 self.addEventListener("install", e => {
@@ -13,7 +13,7 @@ self.addEventListener("fetch", e => {
   if (e.request.method !== "GET" || url.origin !== location.origin) return;
   // Network first so updates show up; fall back to the cached copy when offline.
   e.respondWith(
-    fetch(e.request).then(res => {
+    fetch(new Request(e.request.url, { cache: "no-cache", credentials: "same-origin" })).then(res => {
       const copy = res.clone();
       caches.open(CACHE).then(c => c.put(url.pathname.endsWith("/") ? "./" : e.request, copy)).catch(() => {});
       return res;
