@@ -292,6 +292,10 @@ html.cooking { overflow: hidden; }
 .tabs a { white-space: nowrap; }
 .tabs .short { display: none; }
 @media (max-width: 520px) { .tabs .long { display: none; } .tabs .short { display: inline; } header.top .tabs { justify-content: space-between; } }
+.backup { display: grid; gap: 10px; margin-top: 26px; }
+.backup .howto { margin: 0; font-size: 17px; }
+.import-box { border-top-color: var(--rule); }
+.import-box b { font-weight: 400; text-decoration: underline; text-decoration-color: var(--basil); text-underline-offset: 3px; }
 /* phones & tablets */
 .jump { display: none; }
 .touch-only { display: none; }
@@ -407,6 +411,16 @@ html.cooking { overflow: hidden; }
       <span class="actions"><button id="delYes" class="primary dangerfill" type="button">Delete</button><button id="delNo" class="ghost" type="button">Cancel</button></span>
     </div>
     <ul id="savedList" class="slist"></ul>
+    <section class="backup" aria-labelledby="backupH">
+      <div class="panel-head"><h3 id="backupH">Backup</h3><span class="count" id="backupNote"></span></div>
+      <p class="howto">Your recipes, ticks, notes and shopping list are saved only on this device. Export a backup now and then, and import it if you switch phones or clear your browser.</p>
+      <div class="saved-tools">
+        <button id="exportBtn" class="ghost" type="button">Export backup</button>
+        <button id="importBtn" class="ghost" type="button">Import backup</button>
+        <input id="importFile" type="file" accept=".json,application/json" hidden>
+      </div>
+      <div id="importNote" class="confirm import-box" role="status" hidden></div>
+    </section>
   </section>
 
   <section id="viewShop" class="saved shop" aria-labelledby="shopH" hidden>
@@ -830,6 +844,7 @@ function renderRecent() {
   $("delConfirm").hidden = !confirmingDelete || !n;
   $("delConfirmText").textContent = `Delete ${n} recipe${n === 1 ? "" : "s"} and their ticks? This can't be undone.`;
   $("savedTools").hidden = !rows.length;
+  if ($("backupNote")) renderBackupNote();
 }
 function deleteSaved(keys) {
   keys.forEach(k => { try { localStorage.removeItem(k); } catch {} });
@@ -1628,6 +1643,107 @@ $("shopCopy").addEventListener("click", e => {
   });
   copyText(e.currentTarget, lines.join("\n"));
 });
+
+/* ================= Backup: export / import ================= */
+// Everything lives in this browser only, so a backup file is the safety net.
+const BACKUP_TAG = "recipe-checklist-backup";
+function collectBackup() {
+  const recipes = {};
+  store.get("recent", []).forEach(x => { const s = store.get(x.key, null); if (s && s.recipe) recipes[x.key] = s; });
+  return { app: BACKUP_TAG, version: 1, exported: new Date().toISOString(), recent: store.get("recent", []), recipes, shop: store.get("shop", { keys: [], checks: {} }) };
+}
+async function exportBackup(btn) {
+  const data = collectBackup(), n = Object.keys(data.recipes).length;
+  const name = `recipe-checklist-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  const blob = new Blob([JSON.stringify(data, null, 1)], { type: "application/json" });
+  const label = btn.textContent;
+  try {
+    const file = new File([blob], name, { type: "application/json" });
+    if (matchMedia("(pointer: coarse)").matches && navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: "Recipe Checklist backup", text: `${n} recipes` });
+    } else {
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    }
+    store.set("lastExport", Date.now()); renderBackupNote();
+    btn.textContent = `Exported ${n} recipe${n === 1 ? "" : "s"}`;
+  } catch (e) {
+    if (e && e.name === "AbortError") return;
+    btn.textContent = "Couldn't export";
+  }
+  setTimeout(() => btn.textContent = label, 2200);
+}
+// Only well-formed recipes come back in; anything odd in the file is ignored.
+function cleanSaved(s) {
+  const r = s && s.recipe;
+  if (!r || typeof r.title !== "string" || !Array.isArray(r.ingredients) || !Array.isArray(r.steps)) return null;
+  const str = (v, n) => typeof v === "string" ? v.slice(0, n) : "";
+  const recipe = {
+    title: str(r.title, 200) || "Untitled recipe", source: /^https?:\/\//.test(r.source || "") ? str(r.source, 2000) : "",
+    image: /^https:\/\//.test(r.image || "") ? str(r.image, 2000) : "", servings: str(r.servings, 40), time: str(r.time, 60),
+    ingredients: r.ingredients.slice(0, 50).map(g => ({ group: str(g && g.group, 120), items: (g && Array.isArray(g.items) ? g.items : []).filter(x => typeof x === "string").slice(0, 200).map(x => x.slice(0, 400)) })).filter(g => g.items.length),
+    steps: r.steps.slice(0, 200).map(st => typeof st === "string" ? { group: "", text: st.slice(0, 4000) } : { group: str(st && st.group, 120), text: str(st && st.text, 4000) }).filter(st => st.text),
+    notes: []
+  };
+  const out = { recipe, checks: {} };
+  if (s.checks && typeof s.checks === "object") Object.keys(s.checks).slice(0, 2000).forEach(k => { if (/^[is]-[\d-]+$/.test(k) && s.checks[k] === true) out.checks[k] = true; });
+  if (typeof s.scale === "number" && s.scale > 0 && s.scale <= 50) out.scale = s.scale;
+  if (Number.isInteger(s.rating) && s.rating >= 0 && s.rating <= 5) out.rating = s.rating;
+  if (typeof s.notes === "string") out.notes = s.notes.slice(0, 5000);
+  if (Array.isArray(s.tags)) out.tags = parseTags(s.tags.filter(t => typeof t === "string").join(","));
+  return out;
+}
+let pendingImport = null;
+async function readBackupFile(file) {
+  const note = $("importNote");
+  note.hidden = false; note.className = "confirm import-box";
+  if (!file) return;
+  if (file.size > 20 * 1024 * 1024) { note.innerHTML = "<span>That file is too big to be a Recipe Checklist backup.</span>"; return; }
+  let data;
+  try { data = JSON.parse(await file.text()); } catch { note.innerHTML = "<span>That file isn't a Recipe Checklist backup (it couldn't be read).</span>"; return; }
+  if (!data || data.app !== BACKUP_TAG || typeof data.recipes !== "object") { note.innerHTML = "<span>That file isn't a Recipe Checklist backup.</span>"; return; }
+  const incoming = [];
+  Object.keys(data.recipes).slice(0, 2000).forEach(k => {
+    if (!/^recipe:/.test(k)) return;
+    const s = cleanSaved(data.recipes[k]); if (!s) return;
+    const at = ((data.recent || []).find(x => x && x.key === k) || {}).at;
+    incoming.push({ key: keyFor(s.recipe), s, at: typeof at === "number" ? at : 0 });
+  });
+  const here = new Set(store.get("recent", []).map(x => x.key));
+  const fresh = incoming.filter(x => !here.has(x.key));
+  const when = data.exported ? new Date(data.exported).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "an unknown date";
+  pendingImport = { fresh, shop: data.shop };
+  note.innerHTML = `<span>Backup from ${esc(when)}: ${incoming.length} recipe${incoming.length === 1 ? "" : "s"}. ` +
+    (fresh.length ? `<b>${fresh.length} ${fresh.length === 1 ? "isn't" : "aren't"} on this device yet</b>${incoming.length - fresh.length ? `; ${incoming.length - fresh.length} already here stay as they are` : ""}.` : "They're all already on this device.") +
+    `</span><span class="actions">${fresh.length ? `<button id="importYes" class="primary" type="button">Add ${fresh.length}</button>` : ""}<button id="importNo" class="ghost" type="button">${fresh.length ? "Cancel" : "OK"}</button></span>`;
+  if ($("importYes")) $("importYes").addEventListener("click", applyImport);
+  $("importNo").addEventListener("click", () => { pendingImport = null; note.hidden = true; });
+}
+function applyImport() {
+  const p = pendingImport; if (!p) return;
+  const recent = store.get("recent", []);
+  p.fresh.forEach(x => { store.set(x.key, x.s); recent.push({ key: x.key, title: x.s.recipe.title, at: x.at }); });
+  recent.sort((a, b) => (b.at || 0) - (a.at || 0));
+  store.set("recent", recent);
+  // bring the shopping list back too, if this device doesn't have one
+  const shopHere = store.get("shop", { keys: [], checks: {} });
+  if (!shopHere.keys.length && p.shop && Array.isArray(p.shop.keys)) {
+    const have = new Set(recent.map(x => x.key));
+    store.set("shop", { keys: p.shop.keys.filter(k => have.has(k)), checks: p.shop.checks && typeof p.shop.checks === "object" ? p.shop.checks : {} });
+  }
+  pendingImport = null;
+  $("importNote").innerHTML = `<span>Added ${p.fresh.length} recipe${p.fresh.length === 1 ? "" : "s"} from the backup.</span>`;
+  setTimeout(() => { $("importNote").hidden = true; }, 3500);
+  renderRecent(); renderShop();
+}
+function renderBackupNote() {
+  const t = store.get("lastExport", 0), n = store.get("recent", []).length;
+  $("backupNote").textContent = t ? `Last exported ${new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.` + (n ? "" : "") : n ? "Not backed up yet." : "";
+}
+$("exportBtn").addEventListener("click", e => exportBackup(e.currentTarget));
+$("importBtn").addEventListener("click", () => $("importFile").click());
+$("importFile").addEventListener("change", e => { readBackupFile(e.target.files[0]); e.target.value = ""; });
+renderBackupNote();
 
 /* ================= Keep screen on while cooking ================= */
 let wakeLock = null, wantWake = false;
