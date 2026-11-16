@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Recipe Checklist</title>
+<meta name="theme-color" content="#2d6a4c">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Recipes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: link bar on top, then ingredients (narrow) beside steps (wide); stacks on phones. */
+:root {
+  --paper: #f3f5f2; --card: #ffffff; --ink: #1b2420; --muted: #5d6b65; --line: #d9e0dc;
+  --basil: #2d6a4c; --basil-soft: #e1ede6; --saffron: #d9971e; --danger: #a23b2a;
+  --display: "Young Serif", Georgia, "Times New Roman", serif;
+  --body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #131916; --card: #1b2320; --ink: #e8eeea; --muted: #9aaaa2; --line: #2e3a35;
+    --basil: #6cc196; --basil-soft: #1f3329; --saffron: #f0b44a; --danger: #ef8a76;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #131916; --card: #1b2320; --ink: #e8eeea; --muted: #9aaaa2; --line: #2e3a35;
+  --basil: #6cc196; --basil-soft: #1f3329; --saffron: #f0b44a; --danger: #ef8a76;
+  color-scheme: dark;
+}
+.theme { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--card); }
+.theme button { font: 600 14px/1 var(--body); padding: 7px 12px; border-radius: 999px; background: transparent; color: var(--muted); border: 0; }
+.theme button[aria-pressed="true"] { background: var(--basil); color: var(--card); }
+.top-right { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--paper); color: var(--ink); font: 400 17px/1.55 var(--body); }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 28px 20px 64px; display: grid; gap: 24px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap: balance; }
+header.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+header.top h1 { font-size: 28px; }
+header.top p { margin: 0; color: var(--muted); font-size: 15px; }
+.finder { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row input[type=url] { flex: 1 1 320px; min-width: 0; }
+input[type=url], textarea { font: inherit; color: var(--ink); background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; width: 100%; }
+textarea { min-height: 150px; resize: vertical; font-size: 14px; }
+input:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible, .check input:focus-visible + .box { outline: 3px solid var(--saffron); outline-offset: 2px; }
+button { font: 600 16px/1 var(--body); cursor: pointer; border-radius: 10px; padding: 12px 18px; border: 1px solid transparent; }
+.primary { background: var(--basil); color: var(--card); }
+.primary:hover { filter: brightness(1.08); }
+.primary:disabled { opacity: .6; cursor: progress; }
+.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+.ghost:hover { border-color: var(--muted); }
+.linkish { background: none; border: none; padding: 0; color: var(--basil); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; font-size: 15px; }
+.status { font-size: 15px; color: var(--muted); margin: 0; min-height: 1.2em; }
+.status.err { color: var(--danger); }
+.paste { display: none; gap: 10px; }
+.paste.open { display: grid; }
+.howto { font-size: 15px; color: var(--muted); }
+kbd { font: 600 13px/1 var(--body); padding: 2px 6px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; background: var(--paper); color: var(--ink); }
+.recent { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 14px; color: var(--muted); }
+.chip { font: 500 14px/1.2 var(--body); padding: 6px 10px; border-radius: 999px; background: var(--basil-soft); color: var(--ink); border: 1px solid var(--line); }
+.recipe { display: grid; gap: 20px; }
+.rhead { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; }
+.rhead .titles { display: grid; gap: 8px; }
+.rhead img { width: 140px; height: 140px; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); }
+@media (max-width: 520px) { .rhead { grid-template-columns: minmax(0, 1fr); } .rhead img { width: 100%; height: 180px; } }
+.tag { justify-self: start; font: 700 12px/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--saffron); }
+.rhead h2 { font-size: clamp(28px, 4vw, 40px); line-height: 1.15; }
+.meta { display: flex; gap: 8px 20px; flex-wrap: wrap; color: var(--muted); font-size: 15px; }
+.meta a { color: var(--basil); }
+.progress { display: grid; gap: 6px; }
+.bar { height: 10px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.bar span { display: block; height: 100%; width: 0; background: var(--basil); transition: width .25s ease; }
+.ptext { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 15px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; align-items: start; }
+@media (max-width: 760px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 12px; }
+.panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.panel-head h3 { font-size: 22px; }
+.count { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+ul.list, ol.list { list-style: none; margin: 0; padding: 0; display: grid; }
+.list li + li { border-top: 1px solid var(--line); }
+.subhead { font: 700 13px/1.2 var(--body); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); padding: 14px 0 6px; }
+.check { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; align-items: start; padding: 11px 0; cursor: pointer; }
+.check input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.box { width: 26px; height: 26px; border-radius: 7px; border: 2px solid var(--muted); display: grid; place-items: center; margin-top: 1px; transition: background .15s, border-color .15s; }
+.box svg { width: 16px; height: 16px; opacity: 0; }
+.check input:checked + .box { background: var(--basil); border-color: var(--basil); }
+.check input:checked + .box svg { opacity: 1; }
+.check input:checked ~ .txt { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--muted); }
+.qty { font-weight: 700; }
+.step .num { font: 700 13px/1 var(--body); color: var(--basil); letter-spacing: .04em; display: block; margin-bottom: 4px; }
+.step.current { background: var(--basil-soft); border-radius: 10px; margin: 0 -10px; padding-left: 10px; padding-right: 10px; }
+.notes { font-size: 15px; color: var(--muted); }
+.notes ul { margin: 6px 0 0; padding-left: 20px; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.done { display: none; background: var(--basil-soft); border: 1px solid var(--basil); border-radius: 12px; padding: 14px 16px; font-weight: 600; }
+.done.show { display: block; }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } .bar span, .box { transition: none; } }
+@media print { .finder, .actions, .jump { display: none; } body { background: #fff; } }
+
+/* ---------- phones and tablets ---------- */
+.wrap { padding-left: max(20px, env(safe-area-inset-left)); padding-right: max(20px, env(safe-area-inset-right)); padding-bottom: max(64px, env(safe-area-inset-bottom)); }
+html { -webkit-text-size-adjust: 100%; }
+button, .check { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.wake[aria-pressed="true"] { background: var(--basil-soft); border-color: var(--basil); }
+.jump { display: none; }
+.touch-only { display: none; }
+@media (pointer: coarse) { .touch-only { display: inline; } .mouse-only { display: none; } }
+@media (max-width: 760px) {
+  body { font-size: 18px; }
+  .wrap { padding-top: max(16px, env(safe-area-inset-top)); gap: 18px; }
+  header.top h1 { font-size: 24px; }
+  header.top { align-items: center; }
+  .top-right { width: 100%; justify-content: space-between; }
+  .top-right p { display: none; }
+  .row input[type=url] { flex-basis: 100%; }
+  .row button { flex: 1 1 auto; }
+  .finder { padding: 14px; }
+  /* Progress + quick jumps stay pinned while you scroll through the recipe. */
+  .progress { position: sticky; top: 0; z-index: 5; background: var(--paper); margin: 0 -20px; padding: 10px 20px 10px; padding-top: max(10px, env(safe-area-inset-top)); border-bottom: 1px solid var(--line); }
+  .jump { display: flex; gap: 8px; }
+  .jump a { flex: 1; text-align: center; font: 600 15px/1 var(--body); padding: 10px; border-radius: 10px; border: 1px solid var(--line); color: var(--ink); text-decoration: none; background: var(--card); }
+  .progress { gap: 8px; }
+  .toolrow button { flex: 1 1 auto; padding: 11px 10px; font-size: 15px; }
+  .jump a { padding: 9px 6px; }
+  .panel { padding: 14px 16px; scroll-margin-top: 150px; }
+  .check { padding: 14px 0; gap: 14px; grid-template-columns: 30px minmax(0, 1fr); }
+  .box { width: 28px; height: 28px; }
+  .step.current { margin: 0 -8px; padding-left: 8px; padding-right: 8px; }
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <h1>Recipe Checklist</h1>
+    <div class="top-right">
+      <p>Paste a recipe link. Get the ingredients and a step list you can tick off.</p>
+      <div class="theme" role="group" aria-label="Theme">
+        <button type="button" data-theme-set="auto">Auto</button>
+        <button type="button" data-theme-set="light">Light</button>
+        <button type="button" data-theme-set="dark">Dark</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="finder" aria-label="Load a recipe">
+    <form id="urlForm" class="row">
+      <label for="urlInput" style="position:absolute;left:-9999px">Recipe link</label>
+      <input id="urlInput" type="url" inputmode="url" autocomplete="off" placeholder="https://www.example.com/your-recipe/" required>
+      <button id="pasteLinkBtn" class="ghost" type="button" hidden>Paste link</button>
+      <button id="goBtn" class="primary" type="submit">Get recipe</button>
+    </form>
+    <p id="status" class="status" role="status"></p>
+    <div><button id="togglePaste" class="linkish" type="button">Link not loading? Paste the page instead</button></div>
+    <form id="pasteForm" class="paste">
+      <p class="howto touch-only" style="margin:0">On the recipe page, press and hold on the text, choose <b>Select all</b>, then <b>Copy</b>, and paste it here.</p>
+      <label for="pasteInput" class="howto mouse-only">Best: on the recipe page press <kbd>Ctrl</kbd>+<kbd>U</kbd> to view the page source, then <kbd>Ctrl</kbd>+<kbd>A</kbd>, <kbd>Ctrl</kbd>+<kbd>C</kbd> and paste here. Copying the normal page text (<kbd>Ctrl</kbd>+<kbd>A</kbd> on the page itself) also works for most recipes.</label>
+      <textarea id="pasteInput" placeholder="Paste the page source or page text here"></textarea>
+      <div><button id="pasteBtn" class="primary" type="submit">Make checklist</button></div>
+    </form>
+    <div id="recent" class="recent" hidden></div>
+  </section>
+
+  <section id="recipe" class="recipe" aria-live="polite"></section>
+</main>
+
+<script>
+"use strict";
+const CHECK_SVG = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+/* Free public services that fetch a page for us, tried in order.
+   A web page opened from your PC isn't allowed to load other sites directly. */
+const PROXIES = [
+  u => ({ url: "https://r.jina.ai/" + u, headers: { "X-Return-Format": "html", "X-Wait-For-Selector": "script[type='application/ld+json']", "X-Timeout": "20" } }),
+  u => ({ url: "https://r.jina.ai/" + u, headers: { "X-Return-Format": "html", "X-No-Cache": "true" } }),
+  u => ({ url: "https://api.allorigins.win/raw?url=" + encodeURIComponent(u) }),
+  u => ({ url: "https://api.codetabs.com/v1/proxy?quest=" + encodeURIComponent(u) })
+];
+
+const EXAMPLE = {
+  example: true,
+  title: "Easy Chicken Cacciatore",
+  source: "https://www.themediterraneandish.com/chicken-cacciatore-recipe/",
+  image: "", servings: "6", time: "1 hr 8 min",
+  ingredients: [{ group: "", items: [
+    "6 bone-in, skin-on chicken thighs, trimmed of excess fat", "Kosher salt and black pepper",
+    "2 tbsp extra virgin olive oil", "1 small yellow onion, chopped", "2 celery ribs, chopped",
+    "½ red bell pepper, chopped", "½ green bell pepper, chopped",
+    "8 oz white or baby bella mushrooms, cleaned and sliced", "3 garlic cloves, minced",
+    "1 tsp dried oregano", "3 sprigs fresh thyme", "2 tbsp chopped fresh parsley, plus more to garnish",
+    "Pinch of red pepper flakes", "1 cup red wine", "28 oz can crushed tomatoes"]}],
+  steps: [
+    "Pat the chicken thighs dry. Season both sides, and under the skin, with salt and pepper.",
+    "Heat the olive oil in a large braiser with a lid over medium-high heat. Brown the chicken skin side down first, then flip, about 8 minutes total. Move the chicken to a plate.",
+    "In the same pan over medium heat, add the onion, celery, both peppers, mushrooms and garlic. Season with salt, pepper, oregano, thyme, parsley and red pepper flakes. Cook until tender, 5 to 6 minutes.",
+    "Pour in the red wine and simmer until reduced by about half.",
+    "Stir in the crushed tomatoes and cook over medium heat for 5 to 10 minutes.",
+    "Return the chicken to the pan. Lower the heat to medium-low, cover, and cook about 30 minutes, until the chicken is cooked through.",
+    "Garnish with more fresh parsley and serve."],
+  notes: []
+};
+
+const $ = id => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+let current = null;
+
+/* ================= Recipe parsing ================= */
+function decode(s) {
+  if (s == null) return "";
+  const t = document.createElement("textarea");
+  // Strip tags, decode entities (twice: some sites double-encode), tidy spaces.
+  let out = String(s).replace(/<br\s*\/?>/gi, " ").replace(/<[^>]+>/g, " ");
+  for (let i = 0; i < 2; i++) { t.innerHTML = out; out = t.value; }
+  return out.replace(/\s+/g, " ").trim();
+}
+const asArray = v => v == null ? [] : Array.isArray(v) ? v : [v];
+const isType = (o, name) => o && asArray(o["@type"]).some(t => String(t).toLowerCase() === name.toLowerCase());
+
+function findRecipeNode(node, depth = 0) {
+  if (!node || typeof node !== "object" || depth > 8) return null;
+  if (Array.isArray(node)) { for (const n of node) { const r = findRecipeNode(n, depth + 1); if (r) return r; } return null; }
+  if (isType(node, "Recipe")) return node;
+  for (const key of ["@graph", "mainEntity", "mainEntityOfPage", "itemListElement", "item"]) {
+    if (node[key]) { const r = findRecipeNode(node[key], depth + 1); if (r) return r; }
+  }
+  return null;
+}
+
+function readDuration(iso) {
+  const m = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?)?/i.exec(String(iso || "").trim());
+  if (!m) return "";
+  let mins = (+(m[1] || 0)) * 1440 + (+(m[2] || 0)) * 60 + (+(m[3] || 0));
+  if (!mins) return "";
+  const h = Math.floor(mins / 60), mm = mins % 60;
+  return [h ? h + " hr" : "", mm ? mm + " min" : ""].filter(Boolean).join(" ");
+}
+
+function readSteps(instr) {
+  // Returns [{group, items:[...]}]
+  const groups = [];
+  const push = (group, text) => {
+    text = decode(text); if (!text) return;
+    let g = groups[groups.length - 1];
+    if (!g || g.group !== group) { g = { group, items: [] }; groups.push(g); }
+    g.items.push(text);
+  };
+  const walk = (x, group) => {
+    if (x == null) return;
+    if (typeof x === "string") {
+      // A single block of text: split into lines / numbered sentences.
+      const parts = decode(x.replace(/<\/(p|li)>/gi, "\n")).length && x.includes("\n")
+        ? x.split(/\n+/) : x.split(/(?:^|\s)(?=\d+[.)]\s)/);
+      parts.forEach(p => push(group, p.replace(/^\s*\d+[.)]\s*/, "")));
+      return;
+    }
+    if (Array.isArray(x)) { x.forEach(i => walk(i, group)); return; }
+    if (isType(x, "HowToSection")) { walk(x.itemListElement || x.steps, decode(x.name) || group); return; }
+    if (x.itemListElement && !x.text) { walk(x.itemListElement, group); return; }
+    push(group, x.text || x.name || x.description);
+  };
+  walk(instr, "");
+  return groups;
+}
+
+function fromJsonLd(doc) {
+  for (const s of doc.querySelectorAll('script[type="application/ld+json"]')) {
+    let data;
+    const raw = s.textContent.trim();
+    try { data = JSON.parse(raw); }
+    catch { try { data = JSON.parse(raw.replace(/[\u0000-\u001f]+/g, " ")); } catch { continue; } }
+    const r = findRecipeNode(data);
+    if (!r) continue;
+    const stepGroups = readSteps(r.recipeInstructions);
+    const steps = [];
+    stepGroups.forEach(g => g.items.forEach(t => steps.push(g.group && stepGroups.length > 1 ? { group: g.group, text: t } : { group: "", text: t })));
+    const ingredients = asArray(r.recipeIngredient || r.ingredients).map(decode).filter(Boolean);
+    if (!ingredients.length && !steps.length) continue;
+    let image = asArray(r.image)[0];
+    if (image && typeof image === "object") image = image.url || image["@id"];
+    const y = asArray(r.recipeYield).map(decode).filter(Boolean);
+    const servings = (y.find(v => /^\d+$/.test(v)) || y[0] || "").replace(/^(serves|servings?)\s*:?\s*/i, "");
+    return {
+      title: decode(r.name) || "Your recipe",
+      image: typeof image === "string" ? image : "",
+      servings,
+      time: readDuration(r.totalTime) || [readDuration(r.prepTime), readDuration(r.cookTime)].filter(Boolean).join(" + "),
+      ingredients: ingredients.length ? [{ group: "", items: ingredients }] : [],
+      steps, notes: []
+    };
+  }
+  return null;
+}
+
+function fromMicrodata(doc) {
+  const root = doc.querySelector('[itemtype*="schema.org/Recipe" i]');
+  if (!root) return null;
+  const txt = sel => [...root.querySelectorAll(sel)].map(e => decode(e.getAttribute("content") || e.textContent)).filter(Boolean);
+  const ingredients = txt('[itemprop="recipeIngredient"], [itemprop="ingredients"]');
+  let steps = txt('[itemprop="recipeInstructions"] [itemprop="text"], [itemprop="recipeInstructions"] li');
+  if (!steps.length) steps = txt('[itemprop="recipeInstructions"]');
+  if (!ingredients.length && !steps.length) return null;
+  return {
+    title: txt('[itemprop="name"]')[0] || decode(doc.title) || "Your recipe",
+    image: "", servings: txt('[itemprop="recipeYield"]')[0] || "", time: "",
+    ingredients: [{ group: "", items: ingredients }],
+    steps: steps.map(t => ({ group: "", text: t })), notes: []
+  };
+}
+
+function cardGroups(doc) {
+  const card = doc.querySelector(".wprm-recipe-container, .wprm-recipe, .tasty-recipes");
+  if (!card) return null;
+  let groups = [...card.querySelectorAll(".wprm-recipe-ingredient-group")].map(g => ({
+    group: decode((g.querySelector(".wprm-recipe-group-name") || {}).textContent),
+    items: [...g.querySelectorAll("li.wprm-recipe-ingredient")].map(li => {
+      const c = li.cloneNode(true);
+      c.querySelectorAll(".wprm-checkbox-container, .wprm-recipe-ingredient-notes-faded").forEach(x => x.remove());
+      return decode(c.textContent).replace(/^▢\s*/, "").replace(/\s+,/g, ",");
+    }).filter(Boolean)
+  }));
+  if (!groups.length) {
+    const tasty = card.querySelector(".tasty-recipes-ingredients, .tasty-recipes-ingredients-body");
+    if (tasty) {
+      groups = []; let cur = { group: "", items: [] };
+      tasty.querySelectorAll("h4, li").forEach(el => {
+        if (el.tagName === "H4") { if (cur.items.length) groups.push(cur); cur = { group: decode(el.textContent), items: [] }; }
+        else cur.items.push(decode(el.textContent));
+      });
+      if (cur.items.length) groups.push(cur);
+    }
+  }
+  groups = groups.filter(g => g.items.length);
+  // Only worth using when it actually has named sections.
+  return groups.length > 1 || (groups[0] && groups[0].group) ? groups : null;
+}
+
+/* Copied page TEXT (not source): find the Ingredients and Instructions sections. */
+function fromPlainText(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const isIng = l => /^ingredients?:?$/i.test(l);
+  const isStep = l => /^(instructions?|directions?|method|steps?|preparation):?$/i.test(l);
+  const stopAt = l => /^(notes?|recipe notes|nutrition|nutrition facts|video|tips?|equipment|did you make this|comments?|course|cuisine|keyword)\b/i.test(l);
+  // Use the LAST ingredients heading that is followed by an instructions heading (the recipe card).
+  let best = null;
+  lines.forEach((l, i) => { if (isIng(l)) { const j = lines.findIndex((x, k) => k > i && isStep(x)); if (j > i) best = [i, j]; } });
+  if (!best) return null;
+  const [i, j] = best;
+  const ingredients = lines.slice(i + 1, j).filter(l => !/^(us customary|metric|\d+x|1x|2x|3x|cups?)$/i.test(l));
+  const stepLines = [];
+  for (const l of lines.slice(j + 1)) { if (stopAt(l)) break; stepLines.push(l.replace(/^\d+[.)]?\s*/, "")); }
+  const steps = stepLines.filter(l => l.length > 2);
+  if (!ingredients.length || !steps.length) return null;
+  let title = "";
+  for (let k = i - 1; k >= 0 && k > i - 40; k--) { if (/recipe/i.test(lines[k]) && lines[k].length < 80) { title = lines[k]; break; } }
+  return {
+    title: title || "Your recipe", image: "", servings: "", time: "",
+    ingredients: [{ group: "", items: ingredients }],
+    steps: steps.map(t => ({ group: "", text: t })), notes: []
+  };
+}
+
+function parseRecipe(content, source) {
+  let r = null;
+  if (/<html|<script|<head|<body/i.test(content)) {
+    const doc = new DOMParser().parseFromString(content, "text/html");
+    r = fromJsonLd(doc) || fromMicrodata(doc);
+    // Recipe-card plugins (WP Recipe Maker, Tasty Recipes) keep ingredient sections like "For the sauce".
+    if (r) {
+      const g = cardGroups(doc);
+      const had = r.ingredients.reduce((n, x) => n + x.items.length, 0);
+      const got = g ? g.reduce((n, x) => n + x.items.length, 0) : 0;
+      if (g && (!had || got >= had * 0.8)) r.ingredients = g;
+    }
+  }
+  if (!r) r = fromPlainText(content);
+  if (!r) return null;
+  r.source = source || "";
+  return r;
+}
+
+/* ================= Loading ================= */
+async function fetchWithTimeout(url, ms, headers) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const res = await fetch(url, { signal: ctl.signal, headers: headers || {} });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return await res.text();
+  } finally { clearTimeout(t); }
+}
+
+async function loadPage(url) {
+  const tries = PROXIES.map(p => () => { const r = p(url); return fetchWithTimeout(r.url, 25000, r.headers); });
+  let lastHtml = null; const problems = [];
+  for (const [i, attempt] of tries.entries()) {
+    $("status").innerHTML = '<span class="spinner" aria-hidden="true"></span>' + (i ? `Trying another way (${i + 1} of ${tries.length})…` : "Getting the recipe…");
+    try {
+      const html = await attempt();
+      if (html && html.length > 500) {
+        const r = parseRecipe(html, url);
+        if (r) return r;
+        lastHtml = html; problems.push("no recipe data");
+      } else problems.push("empty page");
+    } catch (e) { problems.push(e.name === "AbortError" ? "timed out" : String(e.message || e)); }
+  }
+  const err = new Error(lastHtml ? "no_recipe" : "no_fetch");
+  err.detail = problems.join(" · ");
+  throw err;
+}
+
+$("urlForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const url = $("urlInput").value.trim();
+  if (!url) return;
+  busy(true, "Getting the recipe…");
+  try {
+    const recipe = await loadPage(url);
+    remember(recipe); show(recipe); setStatus("");
+  } catch (err) {
+    $("pasteForm").classList.add("open");
+    const blockedHere = location.protocol !== "file:" && err.message === "no_fetch";
+    setStatus((err.message === "no_recipe"
+      ? "The page loaded but has no recipe data I can read. Paste the page below instead."
+      : blockedHere
+        ? "This preview can't load other websites. Save the file to your PC and double-click it to open it in Chrome or Edge."
+        : "Couldn't load that page (the site or the fetch service blocked it). Paste the page below instead.")
+      + (err.detail ? `  [Details: ${err.detail}]` : ""), true);
+  } finally { busy(false); }
+});
+
+$("pasteForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const text = $("pasteInput").value.trim();
+  if (text.length < 40) { setStatus("Paste the page into the box first.", true); return; }
+  const recipe = parseRecipe(text, $("urlInput").value.trim());
+  if (!recipe) { setStatus("Couldn't find the ingredients and steps in that. Try the page source method (Ctrl+U).", true); return; }
+  remember(recipe); show(recipe); setStatus(""); $("pasteInput").value = "";
+});
+
+$("togglePaste").addEventListener("click", () => {
+  const open = !$("pasteForm").classList.contains("open");
+  $("pasteForm").classList.toggle("open", open);
+  if (open) $("pasteInput").focus();
+});
+
+function busy(on, msg) {
+  $("goBtn").disabled = on; $("pasteBtn").disabled = on;
+  $("status").classList.remove("err");
+  if (on) $("status").innerHTML = '<span class="spinner" aria-hidden="true"></span>' + esc(msg);
+}
+function setStatus(msg, isErr) { $("status").textContent = msg; $("status").classList.toggle("err", !!isErr); }
+
+/* ================= Saved recipes ================= */
+const keyFor = r => "recipe:" + (r.source || r.title);
+function remember(recipe) {
+  const k = keyFor(recipe);
+  const prev = store.get(k, null);
+  store.set(k, { recipe, checks: prev ? prev.checks : {} });
+  const list = store.get("recent", []).filter(x => x.key !== k);
+  list.unshift({ key: k, title: recipe.title });
+  store.set("recent", list.slice(0, 8));
+  renderRecent();
+}
+function renderRecent() {
+  const list = store.get("recent", []);
+  const el = $("recent");
+  if (!list.length) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = "<span>Recent:</span>" + list.map((x, i) => `<button class="chip" type="button" data-i="${i}">${esc(x.title)}</button>`).join("");
+  el.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+    const saved = store.get(list[+b.dataset.i].key, null);
+    if (saved) { show(saved.recipe); setStatus(""); }
+  }));
+}
+function saveChecks() {
+  if (!current || current.recipe.example) return;
+  const k = keyFor(current.recipe);
+  const saved = store.get(k, { recipe: current.recipe, checks: {} });
+  saved.checks = current.checks;
+  store.set(k, saved);
+}
+
+/* ================= Rendering ================= */
+function show(recipe) {
+  const r = recipe;
+  // Older saves may hold steps as plain strings.
+  r.steps = r.steps.map(s => typeof s === "string" ? { group: "", text: s } : s);
+  current = { recipe: r, checks: r.example ? {} : (store.get(keyFor(r), {}).checks || {}) };
+  let host = "";
+  try { host = r.source ? new URL(r.source).hostname.replace(/^www\./, "") : ""; } catch {}
+
+  const ingHTML = r.ingredients.map((g, gi) =>
+    (g.group ? `<li class="subhead">${esc(g.group)}</li>` : "") +
+    g.items.map((it, ii) => `<li>${checkRow(`i-${gi}-${ii}`, `<span class="txt">${boldQty(it)}</span>`)}</li>`).join("")).join("");
+
+  let lastGroup = "";
+  const stepHTML = r.steps.map((s, i) => {
+    let head = "";
+    if (s.group && s.group !== lastGroup) { head = `<li class="subhead">${esc(s.group)}</li>`; lastGroup = s.group; }
+    return head + `<li class="step" data-step="${i}">${checkRow(`s-${i}`, `<span class="txt"><span class="num">STEP ${i + 1}</span>${esc(s.text)}</span>`)}</li>`;
+  }).join("");
+
+  $("recipe").innerHTML = `
+    <div class="rhead">
+      <div class="titles">
+        ${r.example ? '<span class="tag">Example · paste your own link above</span>' : ""}
+        <h2>${esc(r.title)}</h2>
+        <div class="meta">
+          ${r.servings ? `<span>Serves ${esc(r.servings)}</span>` : ""}
+          ${r.time ? `<span>${esc(r.time)}</span>` : ""}
+          ${host ? `<a href="${esc(r.source)}" target="_blank" rel="noopener">Original on ${esc(host)}</a>` : ""}
+        </div>
+      </div>
+      ${r.image ? `<img src="${esc(r.image)}" alt="" onerror="this.remove()">` : ""}
+    </div>
+    <div class="progress">
+      <div class="bar" aria-hidden="true"><span id="barFill"></span></div>
+      <div class="ptext"><span id="ptext"></span></div>
+      <nav class="jump" aria-label="Jump to"><a href="#ingH">Ingredients</a><a href="#stepH">Steps</a><a href="#" id="jumpNext">Next step</a></nav>
+    </div>
+    <div class="actions toolrow">
+      ${"wakeLock" in navigator ? '<button class="ghost wake" type="button" id="wakeBtn" aria-pressed="false">Keep screen on</button>' : ""}
+      <button class="ghost" type="button" id="copyList">Copy shopping list</button>
+      <button class="ghost" type="button" id="resetBtn">Untick everything</button>
+    </div>
+    <div id="doneMsg" class="done" role="status">All steps done. Enjoy!</div>
+    <div class="grid">
+      <section class="panel" aria-labelledby="ingH">
+        <div class="panel-head"><h3 id="ingH">Ingredients</h3><span class="count" id="ingCount"></span></div>
+        <ul class="list">${ingHTML || '<li class="howto">No ingredient list found.</li>'}</ul>
+      </section>
+      <section class="panel" aria-labelledby="stepH">
+        <div class="panel-head"><h3 id="stepH">Steps</h3><span class="count" id="stepCount"></span></div>
+        <ol class="list">${stepHTML || '<li class="howto">No steps found.</li>'}</ol>
+      </section>
+    </div>`;
+
+  $("recipe").querySelectorAll("input[type=checkbox]").forEach(cb => {
+    cb.checked = !!current.checks[cb.id];
+    cb.addEventListener("change", () => { current.checks[cb.id] = cb.checked; saveChecks(); updateProgress(); });
+  });
+  $("resetBtn").addEventListener("click", () => {
+    current.checks = {}; saveChecks();
+    $("recipe").querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = false);
+    updateProgress();
+  });
+  if ($("wakeBtn")) { $("wakeBtn").addEventListener("click", toggleWake); syncWake(); }
+  $("jumpNext").addEventListener("click", e => {
+    e.preventDefault();
+    const el = document.querySelector(".step.current") || $("stepH");
+    el.scrollIntoView({ block: "center", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  });
+  $("copyList").addEventListener("click", async e => {
+    const lines = [];
+    r.ingredients.forEach((g, gi) => {
+      if (g.group) lines.push("", g.group);
+      g.items.forEach((it, ii) => { if (!current.checks[`i-${gi}-${ii}`]) lines.push("• " + it); });
+    });
+    try { await navigator.clipboard.writeText(r.title + " shopping list\n" + lines.join("\n")); e.target.textContent = "Copied"; }
+    catch { e.target.textContent = "Couldn't copy"; }
+    setTimeout(() => e.target.textContent = "Copy shopping list", 1800);
+  });
+  updateProgress();
+}
+
+function checkRow(id, inner) {
+  return `<label class="check" for="${id}"><input type="checkbox" id="${id}"><span class="box">${CHECK_SVG}</span>${inner}</label>`;
+}
+function boldQty(text) {
+  const m = String(text).match(/^((?:[\d½¼¾⅓⅔⅛\/.\-–]+\s*)+(?:(?:tbsp|tsp|cups?|oz|ounces?|lbs?|pounds?|g|grams?|kg|ml|l|tablespoons?|teaspoons?|cloves?|cans?|pinch(?:es)?|sprigs?|ribs?|sticks?|large|small|medium)\b\.?)?)(.*)$/i);
+  if (!m || !m[1].trim()) return esc(text);
+  return `<span class="qty">${esc(m[1])}</span>${esc(m[2])}`;
+}
+
+function updateProgress() {
+  const r = current.recipe;
+  const ingTotal = r.ingredients.reduce((n, g) => n + g.items.length, 0);
+  let ingDone = 0;
+  r.ingredients.forEach((g, gi) => g.items.forEach((_, ii) => { if (current.checks[`i-${gi}-${ii}`]) ingDone++; }));
+  const stepDone = r.steps.filter((_, i) => current.checks[`s-${i}`]).length;
+  $("ingCount").textContent = `${ingDone} of ${ingTotal} ready`;
+  $("stepCount").textContent = `${stepDone} of ${r.steps.length} done`;
+  $("barFill").style.width = (r.steps.length ? stepDone / r.steps.length * 100 : 0) + "%";
+  const next = r.steps.findIndex((_, i) => !current.checks[`s-${i}`]);
+  $("ptext").textContent = next === -1 ? "Finished" : `Up next: step ${next + 1} of ${r.steps.length}`;
+  document.querySelectorAll(".step").forEach(li => li.classList.toggle("current", +li.dataset.step === next));
+  $("doneMsg").classList.toggle("show", next === -1 && r.steps.length > 0);
+}
+
+/* ================= Theme ================= */
+function applyTheme(mode) {
+  if (mode === "light" || mode === "dark") document.documentElement.setAttribute("data-theme", mode);
+  else document.documentElement.removeAttribute("data-theme");
+  document.querySelectorAll("[data-theme-set]").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.themeSet === mode)));
+  store.set("theme", mode);
+}
+document.querySelectorAll("[data-theme-set]").forEach(b => b.addEventListener("click", () => applyTheme(b.dataset.themeSet)));
+applyTheme(store.get("theme", "auto"));
+
+/* ================= Keep screen on while cooking ================= */
+let wakeLock = null, wantWake = false;
+async function toggleWake() {
+  wantWake = !wantWake;
+  if (wantWake) await grabWake(); else { try { await wakeLock?.release(); } catch {} wakeLock = null; }
+  syncWake();
+}
+async function grabWake() {
+  try { wakeLock = await navigator.wakeLock.request("screen"); wakeLock.addEventListener("release", () => { wakeLock = null; syncWake(); }); }
+  catch { wantWake = false; }
+  syncWake();
+}
+function syncWake() {
+  const b = $("wakeBtn"); if (!b) return;
+  const on = wantWake && !!wakeLock;
+  b.setAttribute("aria-pressed", String(on));
+  b.textContent = on ? "Screen stays on" : "Keep screen on";
+}
+document.addEventListener("visibilitychange", () => { if (wantWake && !wakeLock && document.visibilityState === "visible") grabWake(); });
+
+/* ================= Paste link from clipboard ================= */
+function findLink(t) { const m = String(t || "").match(/https?:\/\/[^\s<>"']+/i); return m ? m[0].replace(/[).,;]+$/, "") : ""; }
+if (navigator.clipboard && navigator.clipboard.readText && matchMedia("(pointer: coarse)").matches) {
+  $("pasteLinkBtn").hidden = false;
+  $("pasteLinkBtn").addEventListener("click", async () => {
+    try {
+      const link = findLink(await navigator.clipboard.readText());
+      if (!link) { setStatus("There's no link on your clipboard. Copy the recipe's link first.", true); return; }
+      $("urlInput").value = link;
+      $("urlForm").requestSubmit();
+    } catch { setStatus("Couldn't read the clipboard. Press and hold in the box and choose Paste.", true); }
+  });
+}
+
+/* ================= Install + offline ================= */
+if ("serviceWorker" in navigator && location.protocol === "https:") {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+
+renderRecent();
+const last = store.get("recent", [])[0];
+const lastSaved = last && store.get(last.key, null);
+show(lastSaved ? lastSaved.recipe : EXAMPLE);
+
+/* ================= Links shared from another app ================= */
+// Android's share sheet (installed app) and the iPhone Shortcut open ./?url=… or ./?text=…
+(function handleShared() {
+  const q = new URLSearchParams(location.search);
+  if (!q.toString()) return;
+  const link = findLink(q.get("url")) || findLink(q.get("text")) || findLink(q.get("title"));
+  history.replaceState(null, "", location.pathname);
+  if (!link) return;
+  $("urlInput").value = link;
+  $("urlForm").requestSubmit();
+})();
+</script>
+</body>
+</html>
