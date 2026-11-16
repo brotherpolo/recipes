@@ -416,6 +416,7 @@ html.cooking { overflow: hidden; }
     </div>
     <p class="shop-for" id="shopFor"></p>
     <div id="shopTools" class="saved-tools">
+      <button id="shopPlan" class="primary" type="button">Send to Plan</button>
       <button id="shopCopy" class="ghost" type="button">Copy list</button>
       <button id="shopUntick" class="ghost" type="button">Untick all</button>
       <a class="ghostlink" href="#saved">Change recipes</a>
@@ -1603,6 +1604,19 @@ $("shopClear").addEventListener("click", e => {
   if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Tap again to clear"; setTimeout(() => { b.dataset.armed = ""; b.textContent = "Clear list"; }, 3000); return; }
   b.dataset.armed = ""; b.textContent = "Clear list";
   store.set("shop", { keys: [], checks: {} }); renderShop(); if (current && $("shopToggle")) syncShopToggle();
+});
+// Send to Wayholm Plan: Plan opens with the list attached, asks which of its lists, and adds the items itself.
+const PLAN_URL = "https://cadence-tasks.web.app/";
+$("shopPlan").addEventListener("click", () => {
+  const st = shopState(), { recipes, groups } = buildShop();
+  const items = [];
+  groups.forEach(g => g.items.forEach(i => { if (!st.checks[i.key]) items.push((i.amountText ? i.amountText + " " : "") + i.name); }));
+  if (!items.length) { $("shopPlan").textContent = "Nothing left to send"; setTimeout(() => $("shopPlan").textContent = "Send to Plan", 1800); return; }
+  const payload = { t: "Shopping list for " + recipes.map(x => x.s.recipe.title).join(", "), items: items.slice(0, 200), from: APP_URL };
+  const url = PLAN_URL + "?listadd=" + encodeURIComponent(JSON.stringify(payload));
+  // a real link click: opens Plan in a new tab (or the Plan app), and isn't caught by pop-up blockers
+  const a = document.createElement("a"); a.href = url; a.target = "_blank"; a.rel = "noopener";
+  document.body.appendChild(a); a.click(); a.remove();
 });
 $("shopCopy").addEventListener("click", e => {
   const st = shopState(), { recipes, groups } = buildShop();
