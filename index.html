@@ -208,6 +208,19 @@ ul.list, ol.list { list-style: none; margin: 0; padding: 0; display: grid; }
 .tacts button { padding: 7px 9px; font-size: 10px; }
 body { padding-bottom: var(--tray-h, 0px); }
 
+.timerhint { margin: 8px 0 0; display: flex; align-items: center; gap: 6px; font: 400 11px/1.4 var(--label); letter-spacing: .03em; color: var(--basil); }
+.timerhint svg { width: 13px; height: 13px; flex: none; }
+.sheet { position: fixed; inset: 0; z-index: 70; background: rgba(0,0,0,.35); display: grid; align-items: end; justify-items: center; }
+.sheet[hidden] { display: none; }
+.sheet-card { width: min(520px, 100%); background: var(--paper); border-top: 2px solid var(--rule); padding: 20px 24px; padding-bottom: max(20px, env(safe-area-inset-bottom)); display: grid; gap: 14px; }
+@media (min-width: 761px) { .sheet { align-items: center; } .sheet-card { border: 1.5px solid var(--rule); } }
+.sheet-card h3 { font: 700 30px/1 var(--script); }
+.presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.presets button { padding: 13px 6px; }
+.sheet-card input[type=number], .sheet-card input[type=text] { font: 400 20px/1.3 var(--hand); color: var(--ink); background: transparent; border: 0; border-bottom: 1px solid var(--rule); border-radius: 0; padding: 8px 2px; flex: 1 1 140px; min-width: 0; }
+.sheet-card .actions button { flex: 1; padding: 14px; }
+.cook-top .linkish { flex: none; }
+
 /* cook mode */
 html.cooking { overflow: hidden; }
 .cook { position: fixed; inset: 0; z-index: 50; background: var(--paper); display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; overflow: hidden; }
@@ -351,10 +364,34 @@ html.cooking { overflow: hidden; }
 
 <aside id="timerTray" class="tray" aria-label="Timers" aria-live="polite" hidden></aside>
 
+<div id="timerSheet" class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetH" hidden>
+  <form id="sheetForm" class="sheet-card">
+    <h3 id="sheetH">Set a timer</h3>
+    <div class="presets">
+      <button type="button" class="ghost" data-mins="1">1 min</button>
+      <button type="button" class="ghost" data-mins="5">5 min</button>
+      <button type="button" class="ghost" data-mins="10">10 min</button>
+      <button type="button" class="ghost" data-mins="15">15 min</button>
+      <button type="button" class="ghost" data-mins="30">30 min</button>
+      <button type="button" class="ghost" data-mins="60">1 hour</button>
+    </div>
+    <div class="row">
+      <label for="sheetMins" class="sr">Minutes</label>
+      <input id="sheetMins" type="number" inputmode="decimal" min="0.1" max="1440" step="any" placeholder="Minutes">
+      <input id="sheetLabel" type="text" placeholder="Label (optional)" maxlength="40" aria-label="Timer label">
+    </div>
+    <div class="actions">
+      <button type="submit" class="primary">Start timer</button>
+      <button type="button" class="ghost" id="sheetCancel">Cancel</button>
+    </div>
+  </form>
+</div>
+
 <div id="cook" class="cook" role="dialog" aria-modal="true" aria-labelledby="cookTitle" hidden>
   <header class="cook-top">
     <span id="cookTitle" class="cook-title"></span>
     <span id="cookPos" class="cook-pos"></span>
+    <button class="linkish" type="button" data-open-timer>Timer</button>
     <button id="cookClose" class="linkish" type="button">Close</button>
   </header>
   <div class="cook-bar"><span id="cookBar"></span></div>
@@ -811,6 +848,7 @@ function show(recipe) {
     </div>
     <div class="actions toolrow">
       <button class="primary" type="button" id="cookBtn">Start cooking</button>
+      <button class="ghost" type="button" data-open-timer>Set a timer</button>
       ${"wakeLock" in navigator ? '<button class="ghost wake" type="button" id="wakeBtn" aria-pressed="false">Keep screen on</button>' : ""}
       <button class="ghost" type="button" id="copyList">Copy shopping list</button>
       <button class="ghost" type="button" id="resetBtn">Untick everything</button>
@@ -824,6 +862,7 @@ function show(recipe) {
       <section class="panel" aria-labelledby="stepH">
         <div class="panel-head"><h3 id="stepH">Method</h3><span class="count" id="stepCount"></span></div>
         <p class="scalenote" id="scaleNote" hidden></p>
+        ${/\btbtn\b/.test(stepHTML) ? `<p class="timerhint">${CLOCK_SVG} Tap a blue time to start a timer.</p>` : ""}
         <ol class="list">${stepHTML || '<li class="howto">No steps found.</li>'}</ol>
       </section>
     </div>`;
@@ -995,12 +1034,16 @@ function durNum(t) {
 }
 const unitSecs = u => /^h/i.test(u) ? 3600 : /^m/i.test(u) ? 60 : 1;
 // Turn "sear for 6-8 minutes" into a tappable timer button. Works on already-escaped HTML.
+const COMBO_RE = /\b(\d+|an?|one|two|three)\s*(?:hours?|hrs?)\s*(?:and\s*)?(\d+)\s*(?:minutes?|mins?)\b/gi;
 function timerize(html, stepIdx) {
-  return html.replace(DUR_RE, (m, a, range, b, unit) => {
+  const btn = (m, secs) => `<button type="button" class="tbtn" data-secs="${secs}" data-step="${stepIdx}" data-label="${m}">${CLOCK_SVG}<span>${m}</span></button>`;
+  // Combined "1 hour 15 minutes" first; then single times, skipping anything already inside a button.
+  html = html.replace(COMBO_RE, (m, h, mins) => btn(m, Math.round(durNum(h) * 3600 + (+mins) * 60)));
+  return html.split(/(<button[^>]*>.*?<\/button>)/).map(part => part.startsWith("<button") ? part : part.replace(DUR_RE, (m, a, range, b, unit) => {
     const secs = Math.round(durNum(a) * unitSecs(unit));
     if (!secs || secs > 24 * 3600) return m;
-    return `<button type="button" class="tbtn" data-secs="${secs}" data-step="${stepIdx}" data-label="${m}">${CLOCK_SVG}<span>${m}</span></button>`;
-  });
+    return btn(m, secs);
+  })).join("");
 }
 
 let timers = store.get("timers", []);
@@ -1058,7 +1101,7 @@ function renderTray() {
   tray.hidden = !timers.length;
   tray.innerHTML = timers.map(t => `
     <div class="trow${t.done ? " ding" : ""}${t.paused != null ? " paused" : ""}">
-      <div class="tinfo"><span class="tlabel">Step ${pad2(t.step + 1)} · ${esc(t.label)}</span><span class="tleft" data-tleft="${t.id}">${t.done ? "Done" : fmtLeft(leftOf(t))}</span></div>
+      <div class="tinfo"><span class="tlabel">${t.step >= 0 ? `Step ${pad2(t.step + 1)} · ` : ""}${esc(t.label)}</span><span class="tleft" data-tleft="${t.id}">${t.done ? "Done" : fmtLeft(leftOf(t))}</span></div>
       <div class="tacts">
         ${t.done ? `<button type="button" class="primary" data-tact="ok" data-id="${t.id}">OK</button>` : `
         <button type="button" class="ghost" data-tact="plus" data-id="${t.id}">+1 min</button>
@@ -1089,6 +1132,29 @@ document.addEventListener("click", e => {
 // Timers carry on across reloads (they count from a fixed end time).
 timers.forEach(t => { if (!t.done && t.paused == null && t.end <= Date.now()) t.done = true; });
 renderTray(); tick();
+
+function openTimerSheet() {
+  unlockAudio();
+  $("timerSheet").hidden = false;
+  $("sheetMins").value = ""; $("sheetLabel").value = "";
+  setTimeout(() => $("sheetMins").focus(), 50);
+}
+function closeTimerSheet() { $("timerSheet").hidden = true; }
+document.addEventListener("click", e => { if (e.target.closest("[data-open-timer]")) openTimerSheet(); });
+$("sheetCancel").addEventListener("click", closeTimerSheet);
+$("timerSheet").addEventListener("click", e => { if (e.target === $("timerSheet")) closeTimerSheet(); });
+$("timerSheet").querySelectorAll("[data-mins]").forEach(b => b.addEventListener("click", () => {
+  const m = +b.dataset.mins;
+  startTimer(m * 60, $("sheetLabel").value.trim() || b.textContent, -1); closeTimerSheet();
+}));
+$("sheetForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const m = parseFloat($("sheetMins").value);
+  if (!(m > 0)) { $("sheetMins").focus(); return; }
+  const label = $("sheetLabel").value.trim() || (m >= 60 ? fmtLeft(m * 60000) : `${+m.toFixed(1)} min`);
+  startTimer(Math.round(m * 60), label, -1); closeTimerSheet();
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("timerSheet").hidden) closeTimerSheet(); });
 
 /* ================= Cook mode ================= */
 let cookIdx = 0;
@@ -1270,7 +1336,18 @@ if (navigator.clipboard && navigator.clipboard.readText && matchMedia("(pointer:
 
 /* ================= Install + offline ================= */
 if ("serviceWorker" in navigator && location.protocol === "https:") {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+  navigator.serviceWorker.register("sw.js").then(reg => {
+    reg.update().catch(() => {});
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reg.update().catch(() => {}); });
+  }).catch(() => {});
+  // When a newer version installs, switch to it straight away (once), unless you're mid-cook.
+  let reloaded = false;
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloaded || !hadController) return;
+    if (!$("cook").hidden || timers.some(t => !t.done)) return;
+    reloaded = true; location.reload();
+  });
 }
 
 (function migrateSaved() {
