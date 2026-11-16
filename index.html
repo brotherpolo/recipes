@@ -70,6 +70,43 @@ kbd { font: 600 13px/1 var(--body); padding: 2px 6px; border: 1px solid var(--li
 .recent { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 14px; color: var(--muted); }
 .chip { font: 500 14px/1.2 var(--body); padding: 6px 10px; border-radius: 999px; background: var(--basil-soft); color: var(--ink); border: 1px solid var(--line); }
 .recipe { display: grid; gap: 20px; }
+.view { display: grid; gap: 24px; }
+.view[hidden], .saved[hidden] { display: none; }
+@media (max-width: 520px) {
+  .theme button { padding: 7px 9px; font-size: 13px; }
+  header.top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+  header.top .top-right { display: contents; }
+  header.top .tabs { grid-column: 1 / -1; order: 3; }
+  .tabs a { flex: 1; justify-content: center; }
+  .tabs { display: flex; }
+}
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.tabs { display: inline-flex; gap: 4px; }
+.tabs a { font: 600 15px/1 var(--body); color: var(--muted); text-decoration: none; padding: 9px 12px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; }
+.tabs a[aria-current="true"] { color: var(--ink); background: var(--card); border: 1px solid var(--line); }
+.badge { font: 700 12px/1 var(--body); background: var(--basil); color: var(--card); border-radius: 999px; padding: 3px 7px; }
+.badge:empty { display: none; }
+.saved { display: grid; gap: 14px; }
+.saved-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.saved-head h2 { font-size: 30px; }
+.saved-head input { font: inherit; font-size: 16px; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; flex: 0 1 320px; min-width: 0; }
+.saved-tools { display: flex; gap: 10px; flex-wrap: wrap; }
+.saved-tools[hidden] { display: none; }
+.ghost.danger { color: var(--danger); }
+.ghost:disabled { opacity: .45; cursor: default; }
+.dangerfill { background: var(--danger); color: var(--card); }
+.confirm { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--card); border: 1px solid var(--danger); border-radius: 12px; padding: 12px 14px; font-weight: 600; }
+.confirm[hidden] { display: none; }
+.slist { list-style: none; margin: 0; padding: 0; background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.srow { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px; padding: 0 14px; }
+.srow + .srow { border-top: 1px solid var(--line); }
+.srow.picked { background: var(--basil-soft); }
+.srow .sel { grid-template-columns: 28px; padding: 14px 10px 14px 0; }
+.sopen { text-align: left; background: none; border: 0; padding: 14px 0; color: var(--ink); display: grid; gap: 4px; border-radius: 0; }
+.sopen:hover .stitle { text-decoration: underline; text-underline-offset: 3px; }
+.stitle { font: 600 17px/1.3 var(--body); }
+.smeta { font: 400 14px/1.3 var(--body); color: var(--muted); }
+.slist .empty { padding: 20px; color: var(--muted); }
 .helplinks { display: flex; gap: 8px 20px; flex-wrap: wrap; }
 .setup { border-top: 1px solid var(--line); padding-top: 12px; font-size: 15px; }
 .setup h4 { margin: 0 0 6px; font: 700 15px/1.3 var(--body); }
@@ -156,7 +193,7 @@ button, .check { -webkit-tap-highlight-color: transparent; touch-action: manipul
   <header class="top">
     <h1>Recipe Checklist</h1>
     <div class="top-right">
-      <p>Paste a recipe link. Get the ingredients and a step list you can tick off.</p>
+      <nav class="tabs" aria-label="Pages"><a href="#">Checklist</a><a href="#saved">Saved recipes <span id="savedCount" class="badge"></span></a></nav>
       <div class="theme" role="group" aria-label="Theme">
         <button type="button" data-theme-set="auto">Auto</button>
         <button type="button" data-theme-set="light">Light</button>
@@ -165,6 +202,7 @@ button, .check { -webkit-tap-highlight-color: transparent; touch-action: manipul
     </div>
   </header>
 
+  <div id="viewMain" class="view">
   <section class="finder" aria-label="Load a recipe">
     <form id="urlForm" class="row">
       <label for="urlInput" style="position:absolute;left:-9999px">Recipe link</label>
@@ -209,10 +247,27 @@ button, .check { -webkit-tap-highlight-color: transparent; touch-action: manipul
       <textarea id="pasteInput" placeholder="Paste the page source or page text here"></textarea>
       <div><button id="pasteBtn" class="primary" type="submit">Make checklist</button></div>
     </form>
-    <div id="recent" class="recent" hidden></div>
   </section>
 
   <section id="recipe" class="recipe" aria-live="polite"></section>
+  </div>
+
+  <section id="viewSaved" class="saved" aria-labelledby="savedH" hidden>
+    <div class="saved-head">
+      <h2 id="savedH">Saved recipes</h2>
+      <label for="savedSearch" class="sr">Search saved recipes</label>
+      <input id="savedSearch" type="search" placeholder="Search by name or site" autocomplete="off">
+    </div>
+    <div id="savedTools" class="saved-tools">
+      <button id="selAll" class="ghost" type="button">Select all</button>
+      <button id="delSel" class="ghost danger" type="button" disabled>Delete selected</button>
+    </div>
+    <div id="delConfirm" class="confirm" role="alertdialog" aria-labelledby="delConfirmText" hidden>
+      <span id="delConfirmText"></span>
+      <span class="actions"><button id="delYes" class="primary dangerfill" type="button">Delete</button><button id="delNo" class="ghost" type="button">Cancel</button></span>
+    </div>
+    <ul id="savedList" class="slist"></ul>
+  </section>
 </main>
 
 <script>
@@ -473,10 +528,10 @@ $("urlForm").addEventListener("submit", async e => {
     const recipe = await loadPage(url);
     remember(recipe); show(recipe); setStatus("");
   } catch (err) {
-    $(err.message === "no_fetch" ? "sendHelp" : "pasteForm").classList.add("open");
+    $("sendHelp").classList.add("open");
     const blockedHere = location.protocol !== "file:" && err.message === "no_fetch";
     setStatus((err.message === "no_recipe"
-      ? "The page loaded but has no recipe data I can read. Paste the page below instead."
+      ? "That site blocked the link loader (it sent a bot check instead of the recipe). Open the recipe and use the Send button below."
       : blockedHere
         ? "This preview can't load other websites. Save the file to your PC and double-click it to open it in Chrome or Edge."
         : "That site blocks link loading. Use the Send button below while you're on the recipe page, or paste the page instead.")
@@ -507,27 +562,104 @@ function busy(on, msg) {
 function setStatus(msg, isErr) { $("status").textContent = msg; $("status").classList.toggle("err", !!isErr); }
 
 /* ================= Saved recipes ================= */
-const keyFor = r => "recipe:" + (r.source || r.title);
+// Same recipe = same page, ignoring tracking bits like ?utm_source=… or #recipe.
+function cleanUrl(u) {
+  try { const x = new URL(u); return (x.hostname.replace(/^www\./, "") + x.pathname).replace(/\/+$/, "").toLowerCase(); }
+  catch { return String(u || ""); }
+}
+const keyFor = r => "recipe:" + (r.source ? cleanUrl(r.source) : r.title);
 function remember(recipe) {
   const k = keyFor(recipe);
   const prev = store.get(k, null);
   store.set(k, { recipe, checks: prev ? prev.checks : {} });
-  const list = store.get("recent", []).filter(x => x.key !== k);
-  list.unshift({ key: k, title: recipe.title });
-  store.set("recent", list.slice(0, 8));
+  // Drop older copies of the same recipe (same key, or same title from the same site).
+  const host = hostOf(recipe.source);
+  const all = store.get("recent", []);
+  const dupes = all.filter(x => x.key !== k && (() => { const s = store.get(x.key, null); return s && s.recipe && s.recipe.title === recipe.title && hostOf(s.recipe.source) === host; })());
+  dupes.forEach(x => { try { localStorage.removeItem(x.key); } catch {} });
+  const list = all.filter(x => x.key !== k && !dupes.includes(x));
+  list.unshift({ key: k, title: recipe.title, at: Date.now() });
+  store.set("recent", list.slice(0, 300));
   renderRecent();
 }
-function renderRecent() {
-  const list = store.get("recent", []);
-  const el = $("recent");
-  if (!list.length) { el.hidden = true; return; }
-  el.hidden = false;
-  el.innerHTML = "<span>Recent:</span>" + list.map((x, i) => `<button class="chip" type="button" data-i="${i}">${esc(x.title)}</button>`).join("");
-  el.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
-    const saved = store.get(list[+b.dataset.i].key, null);
-    if (saved) { show(saved.recipe); setStatus(""); }
-  }));
+
+/* ---- Saved recipes page ---- */
+const selected = new Set();
+let confirmingDelete = false;
+function hostOf(u) { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } }
+function savedRows() {
+  return store.get("recent", []).map(x => {
+    const s = store.get(x.key, null);
+    if (!s || !s.recipe) return null;
+    const steps = (s.recipe.steps || []).length;
+    const done = (s.recipe.steps || []).filter((_, i) => s.checks && s.checks[`s-${i}`]).length;
+    return { key: x.key, title: s.recipe.title, host: hostOf(s.recipe.source), at: x.at, steps, done, image: s.recipe.image };
+  }).filter(Boolean);
 }
+function renderRecent() {
+  const rows = savedRows();
+  $("savedCount").textContent = rows.length ? String(rows.length) : "";
+  for (const k of [...selected]) if (!rows.some(r => r.key === k)) selected.delete(k);
+  const q = ($("savedSearch").value || "").trim().toLowerCase();
+  const shown = q ? rows.filter(r => (r.title + " " + r.host).toLowerCase().includes(q)) : rows;
+  const fmt = t => t ? new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric", year: new Date(t).getFullYear() === new Date().getFullYear() ? undefined : "numeric" }) : "";
+  $("savedList").innerHTML = shown.length ? shown.map(r => `
+    <li class="srow${selected.has(r.key) ? " picked" : ""}">
+      <label class="check sel" for="pick-${esc(r.key)}"><input type="checkbox" id="pick-${esc(r.key)}" data-key="${esc(r.key)}" ${selected.has(r.key) ? "checked" : ""}><span class="box">${CHECK_SVG}</span><span class="sr">Select ${esc(r.title)}</span></label>
+      <button class="sopen" type="button" data-key="${esc(r.key)}">
+        <span class="stitle">${esc(r.title)}</span>
+        <span class="smeta">${[r.host, fmt(r.at), r.steps ? (r.done === r.steps ? "Cooked" : r.done ? `${r.done} of ${r.steps} steps done` : `${r.steps} steps`) : ""].filter(Boolean).map(esc).join(" · ")}</span>
+      </button>
+    </li>`).join("")
+    : `<li class="empty">${rows.length ? "No saved recipes match that search." : "No saved recipes yet. Every recipe you open is saved here."}</li>`;
+  $("savedList").querySelectorAll("input[data-key]").forEach(cb => cb.addEventListener("change", () => {
+    cb.checked ? selected.add(cb.dataset.key) : selected.delete(cb.dataset.key);
+    confirmingDelete = false; renderRecent();
+  }));
+  $("savedList").querySelectorAll(".sopen").forEach(b => b.addEventListener("click", () => {
+    const s = store.get(b.dataset.key, null);
+    if (s) { show(s.recipe); setStatus(""); location.hash = ""; }
+  }));
+  const n = selected.size;
+  const allShownPicked = shown.length > 0 && shown.every(r => selected.has(r.key));
+  $("selAll").textContent = allShownPicked ? "Clear selection" : (q ? "Select all shown" : "Select all");
+  $("selAll").disabled = !shown.length;
+  $("delSel").disabled = !n;
+  $("delSel").textContent = n ? `Delete ${n} selected` : "Delete selected";
+  $("delConfirm").hidden = !confirmingDelete || !n;
+  $("delConfirmText").textContent = `Delete ${n} recipe${n === 1 ? "" : "s"} and their ticks? This can't be undone.`;
+  $("savedTools").hidden = !rows.length;
+}
+function deleteSaved(keys) {
+  keys.forEach(k => { try { localStorage.removeItem(k); } catch {} });
+  store.set("recent", store.get("recent", []).filter(x => !keys.includes(x.key)));
+  if (current && keys.includes(keyFor(current.recipe))) {
+    const next = savedRows()[0];
+    show(next ? store.get(next.key).recipe : EXAMPLE);
+  }
+  selected.clear(); confirmingDelete = false;
+  renderRecent();
+}
+$("savedSearch").addEventListener("input", renderRecent);
+$("selAll").addEventListener("click", () => {
+  const q = ($("savedSearch").value || "").trim().toLowerCase();
+  const shown = savedRows().filter(r => !q || (r.title + " " + r.host).toLowerCase().includes(q));
+  const all = shown.every(r => selected.has(r.key));
+  shown.forEach(r => all ? selected.delete(r.key) : selected.add(r.key));
+  confirmingDelete = false; renderRecent();
+});
+$("delSel").addEventListener("click", () => { confirmingDelete = true; renderRecent(); $("delYes").focus(); });
+$("delNo").addEventListener("click", () => { confirmingDelete = false; renderRecent(); });
+$("delYes").addEventListener("click", () => deleteSaved([...selected]));
+
+function route() {
+  const saved = location.hash === "#saved";
+  $("viewMain").hidden = saved; $("viewSaved").hidden = !saved;
+  document.querySelectorAll(".tabs a").forEach(a => a.setAttribute("aria-current", String((a.getAttribute("href") === "#saved") === saved)));
+  if (saved) renderRecent();
+  window.scrollTo(0, 0);
+}
+window.addEventListener("hashchange", () => { if (!location.hash.startsWith("#r=")) route(); });
 function saveChecks() {
   if (!current || current.recipe.example) return;
   const k = keyFor(current.recipe);
@@ -692,7 +824,24 @@ if ("serviceWorker" in navigator && location.protocol === "https:") {
   navigator.serviceWorker.register("sw.js").catch(() => {});
 }
 
+(function migrateSaved() {
+  const list = store.get("recent", []);
+  const out = [], seen = new Set();
+  for (const x of list) {
+    const s = store.get(x.key, null);
+    if (!s || !s.recipe) continue;
+    const k = keyFor(s.recipe);
+    const dupeId = s.recipe.title + "|" + hostOf(s.recipe.source);
+    if (k !== x.key) { try { localStorage.removeItem(x.key); } catch {} }
+    if (seen.has(k) || seen.has(dupeId)) continue;   // list is newest-first, so the newest copy wins
+    seen.add(k); seen.add(dupeId);
+    store.set(k, s);
+    out.push({ key: k, title: s.recipe.title, at: x.at || 0 });
+  }
+  store.set("recent", out);
+})();
 renderRecent();
+route();
 const last = store.get("recent", [])[0];
 const lastSaved = last && store.get(last.key, null);
 show(lastSaved ? lastSaved.recipe : EXAMPLE);
@@ -771,7 +920,9 @@ function recipeFromSent(raw) {
   return recipe;
 }
 
-(function handleSent() {
+window.addEventListener("hashchange", () => { if (location.hash.startsWith("#r=")) { handleSent(); route(); } });
+handleSent();
+function handleSent() {
   if (!location.hash.startsWith("#r=")) return;
   let raw = location.hash.slice(3);
   try { raw = decodeURIComponent(raw); } catch {}
@@ -781,7 +932,7 @@ function recipeFromSent(raw) {
   if (!recipe) { setStatus("That recipe came through garbled. Try the Send button again.", true); return; }
   if (recipe.source) $("urlInput").value = recipe.source;
   remember(recipe); show(recipe); setStatus("");
-})();
+}
 
 /* ================= Links shared from another app ================= */
 // Android's share sheet (installed app) and the iPhone Shortcut open ./?url=… or ./?text=…
