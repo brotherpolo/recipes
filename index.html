@@ -312,6 +312,72 @@ html.cooking { overflow: hidden; }
 .blocked .linkish { justify-self: start; }
 .blocked .touch-only { display: none; } .blocked .mouse-only { display: revert; }
 @media (pointer: coarse) { .blocked .touch-only { display: revert; } .blocked .mouse-only { display: none; } }
+@media (pointer: coarse) { .blocked .tour.touch-only { display: grid; } }
+
+/* ---------- Send Recipe setup: animated walkthrough ---------- */
+.tour { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 18px; align-items: center; margin-top: 4px; }
+@media (max-width: 420px) { .tour { grid-template-columns: 172px minmax(0, 1fr); gap: 14px; } }
+.tour-phone { position: relative; height: 330px; border: 2px solid var(--ink); border-radius: 22px; overflow: hidden; background: #fff; color: #1f1f1f;
+  font: 400 12px/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; box-shadow: 0 8px 22px rgba(0,0,0,.12); }
+@media (max-width: 420px) { .tour-phone { height: 300px; } }
+.tour-phone::before { content: ""; position: absolute; top: 6px; left: 50%; width: 40px; height: 5px; margin-left: -20px; border-radius: 3px; background: #d4d4d4; z-index: 3; }
+.sc { position: absolute; inset: 0; padding-top: 18px; opacity: 0; transition: opacity .35s ease; }
+.sc.on { opacity: 1; }
+.ph-line { display: block; height: 7px; border-radius: 4px; background: #e6e6e6; margin: 8px 12px; }
+.ph-line.s { width: 55%; }
+.ph-page { padding-top: 6px; } .ph-page.dim { opacity: .35; }
+.ph-bar { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: #f1f3f4; border-bottom: 1px solid #e3e3e3; }
+.ph-url { flex: 1; background: #fff; border-radius: 14px; padding: 6px 10px; color: #5f6368; white-space: nowrap; overflow: hidden; }
+.ph-bar.on .ph-url { box-shadow: inset 0 0 0 2px #1a73e8; color: #1f1f1f; }
+.ph-dots { font-size: 18px; width: 22px; text-align: center; }
+.ph-menu { position: absolute; right: 6px; top: 22px; width: 150px; background: #fff; border-radius: 8px; box-shadow: 0 4px 18px rgba(0,0,0,.22); padding: 6px 0;
+  transform-origin: top right; transform: scale(.6); opacity: 0; transition: transform .25s ease, opacity .25s ease; }
+.sc-star.menu .ph-menu { transform: none; opacity: 1; }
+.ph-icons { display: flex; justify-content: space-around; padding: 4px 6px 8px; border-bottom: 1px solid #eee; font-size: 15px; color: #5f6368; }
+.sc-star.starred .ph-star { color: #1a73e8; }
+.ph-mi { padding: 7px 12px; }
+.ph-snack { position: absolute; left: 8px; right: 8px; bottom: 12px; display: flex; justify-content: space-between; align-items: center; background: #303134; color: #fff;
+  border-radius: 6px; padding: 10px 12px; transform: translateY(70px); transition: transform .3s ease; }
+.sc-edit.up .ph-snack { transform: none; }
+.ph-snack-btn { color: #8ab4f8; font-weight: 600; }
+.ph-formbar { display: flex; gap: 14px; padding: 8px 12px; font-weight: 600; border-bottom: 1px solid #eee; }
+.ph-field { margin: 10px 12px 0; }
+.ph-field small { display: block; color: #5f6368; font-size: 10px; margin-bottom: 2px; }
+.ph-input { border-bottom: 2px solid #1a73e8; padding: 4px 0; min-height: 22px; white-space: nowrap; overflow: hidden; }
+.ph-input.muted { border-color: #ccc; color: #5f6368; }
+.ph-url-in .ph-paste { display: none; color: #1f1f1f; }
+.sc-form.pasted .ph-old { display: none; } .sc-form.pasted .ph-paste { display: inline; background: #d2e3fc; }
+.ph-caret { display: inline-block; width: 1.5px; height: 13px; background: #1a73e8; vertical-align: -2px; margin-left: 1px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.ph-sugs { background: #fff; }
+.ph-sug { display: flex; gap: 10px; align-items: center; padding: 9px 10px; border-bottom: 1px solid #eee; opacity: 0; transition: opacity .25s ease; }
+.sc-use.typed .ph-sug { opacity: 1; }
+.ph-sug.hl { background: #e8f0fe; } .ph-sug b { display: block; font-weight: 600; } .ph-sug small { color: #5f6368; font-size: 10px; }
+.ph-sic { width: 22px; height: 22px; border-radius: 50%; background: #eef2f7; display: grid; place-items: center; color: #5f6368; flex: none; }
+.ph-app { padding: 10px 12px; font-family: var(--hand); }
+.ph-h { font: 700 20px/1 var(--script); margin-bottom: 10px; }
+.ph-card { border-top: 1.5px solid #1d1d1b; padding-top: 8px; font-size: 14px; } .ph-card .ph-line { margin: 7px 0; }
+.ph-btn { display: inline-block; margin-top: 14px; border: 1px solid #1d1d1b; padding: 7px 10px; font: 500 10px/1 var(--label); letter-spacing: .05em; text-transform: uppercase; transition: background .15s; }
+.sc-copy.pressed .ph-btn { background: #1d1d1b; color: #fff; }
+.ph-toast { position: absolute; left: 50%; bottom: 16px; transform: translate(-50%, 30px); opacity: 0; background: #1d1d1b; color: #fff; padding: 6px 12px; border-radius: 14px; font: 500 11px system-ui, sans-serif; transition: transform .25s, opacity .25s; }
+.sc-copy.pressed .ph-toast { transform: translate(-50%, 0); opacity: 1; }
+.tap { position: absolute; z-index: 4; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; border: 2.5px solid var(--basil); background: color-mix(in srgb, var(--basil) 18%, transparent);
+  opacity: 0; transform: scale(1.6); transition: left .45s ease, top .45s ease, opacity .2s; pointer-events: none; }
+.tap.show { opacity: 1; transform: scale(1); }
+.tap.press { animation: press .45s ease; }
+@keyframes press { 40% { transform: scale(.72); } 100% { transform: scale(1); } }
+.tour-side { display: grid; gap: 10px; align-content: center; }
+.tour-n { margin: 0; font: 500 11px/1 var(--label); letter-spacing: .12em; text-transform: uppercase; color: var(--basil); }
+.tour-cap { margin: 0; font: 400 21px/1.3 var(--hand); min-height: 3.9em; }
+.tour-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.tour-ctl button { margin: 0; width: 34px; height: 34px; padding: 0; font-size: 14px; }
+.tour-dots { display: flex; gap: 6px; flex-basis: 100%; padding-top: 4px; }
+.tour-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.tour-dots i.on { background: var(--ink); }
+.tour-copy { margin: 0; font-size: 16px; color: var(--muted); }
+@media (max-width: 420px) { .tour-cap { font-size: 19px; } }
+@media (prefers-reduced-motion: reduce) { .sc, .ph-menu, .ph-snack, .tap, .ph-sug { transition: none; } .ph-caret, .tap.press { animation: none; } }
+
 /* phones & tablets */
 .jump { display: none; }
 .touch-only { display: none; }
@@ -374,12 +440,59 @@ html.cooking { overflow: hidden; }
       </ol>
       <details id="blkSetup" class="blk-setup">
         <summary><span class="touch-only">First time? Set up Send Recipe (1 minute)</span><span class="mouse-only">No extension yet? Set it up</span></summary>
-        <ol class="touch-only">
-          <li>Copy the Send Recipe code: <button class="ghost small" type="button" data-copy-bm>Copy code</button></li>
-          <li>In Chrome, tap <b>⋮</b> then <b>☆</b> to bookmark any page.</li>
-          <li>Tap <b>Edit</b> on the "Bookmarked" message (or ⋮ › Bookmarks, then ⋮ beside it › Edit).</li>
-          <li>Change the name to <b>Send Recipe</b>. Clear the URL, paste the code, and save.</li>
-        </ol>
+        <div class="tour touch-only" data-tour>
+          <div class="tour-phone" aria-hidden="true">
+            <!-- 1: copy the code (this app) -->
+            <div class="sc sc-copy">
+              <div class="ph-app"><div class="ph-h">Recipe Checklist</div><div class="ph-card"><b>Allrecipes blocks link loading</b><span class="ph-line"></span><span class="ph-line s"></span></div>
+                <div class="ph-btn" data-t="copy">Copy code</div><div class="ph-toast">Copied</div></div>
+            </div>
+            <!-- 2: bookmark any page: ⋮ then ☆ -->
+            <div class="sc sc-star">
+              <div class="ph-bar"><span class="ph-url">any page</span><span class="ph-dots" data-t="dots">⋮</span></div>
+              <div class="ph-page"><span class="ph-line"></span><span class="ph-line"></span><span class="ph-line s"></span></div>
+              <div class="ph-menu"><div class="ph-icons"><span>→</span><span class="ph-star" data-t="star">☆</span><span>⤓</span><span>ⓘ</span><span>↻</span></div><div class="ph-mi">New tab</div><div class="ph-mi">History</div><div class="ph-mi">Bookmarks</div></div>
+            </div>
+            <!-- 3: Edit on the Bookmarked message -->
+            <div class="sc sc-edit">
+              <div class="ph-bar"><span class="ph-url">any page</span><span class="ph-dots">⋮</span></div>
+              <div class="ph-page"><span class="ph-line"></span><span class="ph-line"></span><span class="ph-line s"></span></div>
+              <div class="ph-snack"><span>Bookmarked</span><span class="ph-snack-btn" data-t="edit">Edit</span></div>
+            </div>
+            <!-- 4: name + paste the code as URL, save -->
+            <div class="sc sc-form">
+              <div class="ph-formbar"><span data-t="back">←</span><span>Edit bookmark</span></div>
+              <div class="ph-field"><small>Name</small><div class="ph-input"><span class="ph-type" data-type="Send Recipe"></span><i class="ph-caret"></i></div></div>
+              <div class="ph-field"><small>URL</small><div class="ph-input ph-url-in"><span class="ph-old">https://any-page.com/</span><span class="ph-paste">javascript:(function(){var j=(fun…</span></div></div>
+              <div class="ph-field"><small>Folder</small><div class="ph-input muted">Mobile bookmarks</div></div>
+            </div>
+            <!-- 5: using it: type send, tap ☆ Send Recipe -->
+            <div class="sc sc-use">
+              <div class="ph-bar on"><span class="ph-url"><span class="ph-type" data-type="send"></span><i class="ph-caret"></i></span></div>
+              <div class="ph-sugs"><div class="ph-sug hl" data-t="sug"><span class="ph-sic">☆</span><span><b>Send Recipe</b><small>javascript:(function(){…</small></span></div><div class="ph-sug"><span class="ph-sic">⌕</span><span>send money</span></div></div>
+              <div class="ph-page dim"><span class="ph-line"></span><span class="ph-line s"></span></div>
+            </div>
+            <span class="tap"></span>
+          </div>
+          <div class="tour-side">
+            <p class="tour-n" aria-hidden="true"></p>
+            <p class="tour-cap" aria-live="polite"></p>
+            <div class="tour-ctl">
+              <button type="button" class="ghost small" data-tour-prev aria-label="Previous step">‹</button>
+              <button type="button" class="ghost small" data-tour-play aria-label="Pause">❚❚</button>
+              <button type="button" class="ghost small" data-tour-next aria-label="Next step">›</button>
+              <span class="tour-dots" aria-hidden="true"></span>
+            </div>
+            <p class="tour-copy">Step 1 for real: <button class="ghost small" type="button" data-copy-bm>Copy code</button></p>
+          </div>
+          <ol class="sr">
+            <li>Copy the Send Recipe code with the Copy code button.</li>
+            <li>In Chrome, tap ⋮ then ☆ to bookmark any page.</li>
+            <li>Tap Edit on the "Bookmarked" message.</li>
+            <li>Change the name to Send Recipe, replace the URL with the code you copied, and go back to save.</li>
+            <li>On a recipe page: tap the address bar, type send, and tap ☆ Send Recipe.</li>
+          </ol>
+        </div>
         <p class="mouse-only">Download <a href="recipe-checklist-extension.zip" download>the Chrome extension</a>, unzip it, open <code>chrome://extensions</code>, turn on Developer mode, click <b>Load unpacked</b> and pick the folder.</p>
       </details>
       <button id="blkClose" class="linkish" type="button">Dismiss</button>
@@ -1803,6 +1916,75 @@ $("exportBtn").addEventListener("click", e => exportBackup(e.currentTarget));
 $("importBtn").addEventListener("click", () => $("importFile").click());
 $("importFile").addEventListener("change", e => { readBackupFile(e.target.files[0]); e.target.value = ""; });
 renderBackupNote();
+
+
+/* ================= Send Recipe setup: animated walkthrough ================= */
+const TOUR = [
+  { n: "Step 1 of 5", cap: "Tap <b>Copy code</b> (the real one is just below).", sc: "sc-copy", taps: [["copy", "pressed"]] },
+  { n: "Step 2 of 5", cap: "In Chrome, tap <b>⋮</b>, then <b>☆</b> to bookmark any page.", sc: "sc-star", taps: [["dots", "menu"], ["star", "starred"]] },
+  { n: "Step 3 of 5", cap: "Tap <b>Edit</b> on the “Bookmarked” message.", sc: "sc-edit", pre: "up", taps: [["edit", ""]] },
+  { n: "Step 4 of 5", cap: "Name it <b>Send Recipe</b>. Replace the URL with the code, then tap <b>←</b> to save.", sc: "sc-form", type: true, taps: [["back", ""]], paste: true },
+  { n: "Step 5 of 5", cap: "Done! On any recipe: type <b>send</b> in the address bar, tap <b>☆ Send Recipe</b>.", sc: "sc-use", type: true, after: "typed", taps: [["sug", ""]] }
+];
+function mountTour(root) {
+  const phone = root.querySelector(".tour-phone"), tap = phone.querySelector(".tap");
+  const dots = root.querySelector(".tour-dots");
+  dots.innerHTML = TOUR.map(() => "<i></i>").join("");
+  let i = 0, playing = !matchMedia("(prefers-reduced-motion: reduce)").matches, timers = [];
+  const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+  const clear = () => { timers.forEach(clearTimeout); timers = []; };
+  function place(el) {
+    const a = phone.getBoundingClientRect(), b = el.getBoundingClientRect();
+    tap.style.left = (b.left - a.left + b.width / 2) + "px"; tap.style.top = (b.top - a.top + b.height / 2) + "px";
+  }
+  function typeInto(el, text, done) {
+    let k = 0; el.textContent = "";
+    const step = () => { el.textContent = text.slice(0, ++k); if (k < text.length) later(step, 90); else if (done) done(); };
+    later(step, 300);
+  }
+  function show(n) {
+    clear(); i = (n + TOUR.length) % TOUR.length;
+    const st = TOUR[i];
+    phone.querySelectorAll(".sc").forEach(sc => { sc.className = sc.className.split(" ").filter(c => c === "sc" || c.startsWith("sc-")).join(" "); sc.classList.toggle("on", sc.classList.contains(st.sc)); });
+    const sc = phone.querySelector("." + st.sc);
+    sc.querySelectorAll("[data-type]").forEach(t => t.textContent = "");
+    root.querySelector(".tour-n").textContent = st.n;
+    root.querySelector(".tour-cap").innerHTML = st.cap;
+    dots.querySelectorAll("i").forEach((d, k) => d.classList.toggle("on", k === i));
+    tap.classList.remove("show", "press");
+    let first = true;
+    let t = 500;
+    if (st.pre) later(() => sc.classList.add(st.pre), 250);
+    const runTaps = () => {
+      st.taps.forEach(([target, cls], k) => {
+        later(() => {
+          const el = sc.querySelector(`[data-t="${target}"]`); if (!el) return;
+          if (first) { tap.style.transition = "none"; place(el); void tap.offsetWidth; tap.style.transition = ""; first = false; } else place(el);
+          tap.classList.add("show");
+        }, t + k * 1100);
+        later(() => { tap.classList.remove("press"); void tap.offsetWidth; tap.classList.add("press"); if (cls) sc.classList.add(cls); }, t + k * 1100 + 550);
+      });
+      if (playing) later(() => show(i + 1), t + st.taps.length * 1100 + 1400);
+    };
+    if (st.type) {
+      const field = sc.querySelector("[data-type]");
+      typeInto(field, field.dataset.type, () => {
+        if (st.after) sc.classList.add(st.after);
+        if (st.paste) later(() => { sc.classList.add("pasted"); t = 700; runTaps(); }, 500); else { t = 600; runTaps(); }
+      });
+    } else runTaps();
+  }
+  const playBtn = root.querySelector("[data-tour-play]");
+  const sync = () => { playBtn.textContent = playing ? "❚❚" : "▶"; playBtn.setAttribute("aria-label", playing ? "Pause" : "Play"); };
+  playBtn.addEventListener("click", () => { playing = !playing; sync(); show(i); });
+  root.querySelector("[data-tour-next]").addEventListener("click", () => { playing = false; sync(); show(i + 1); });
+  root.querySelector("[data-tour-prev]").addEventListener("click", () => { playing = false; sync(); show(i - 1); });
+  sync();
+  // start when it comes into view; stop when hidden
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) show(i); else clear(); }), { threshold: 0.4 });
+  io.observe(phone);
+}
+document.querySelectorAll("[data-tour]").forEach(mountTour);
 
 /* ================= Keep screen on while cooking ================= */
 let wakeLock = null, wantWake = false;
