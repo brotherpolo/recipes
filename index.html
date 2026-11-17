@@ -296,6 +296,22 @@ html.cooking { overflow: hidden; }
 .backup .howto { margin: 0; font-size: 17px; }
 .import-box { border-top-color: var(--rule); }
 .import-box b { font-weight: 400; text-decoration: underline; text-decoration-color: var(--basil); text-underline-offset: 3px; }
+.blocked { display: grid; gap: 10px; border-top: 2px solid var(--rule); border-bottom: 1px solid var(--line); padding: 14px 0 12px; }
+.blocked[hidden] { display: none; }
+.blocked:not([hidden]) ~ .helplinks { display: none; }
+.blocked h3 { font: 700 30px/1.1 var(--script); }
+.blk-sub { margin: 0; font-size: 18px; color: var(--muted); }
+.blk-steps { margin: 0; padding-left: 26px; display: grid; gap: 8px; font-size: 20px; }
+.blk-steps li::marker { font: 500 13px var(--label); color: var(--basil); }
+.blk-steps a { white-space: nowrap; color: var(--basil); text-decoration: underline; text-underline-offset: 3px; }
+.blk-setup { border: 1px solid var(--line); padding: 10px 12px; font-size: 17px; }
+.blk-setup summary { cursor: pointer; font: 500 12px/1.4 var(--label); letter-spacing: .05em; text-transform: uppercase; color: var(--ink); }
+.blk-setup[open] summary { margin-bottom: 8px; }
+.blk-setup ol { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+.blk-setup p { margin: 0; }
+.blocked .linkish { justify-self: start; }
+.blocked .touch-only { display: none; } .blocked .mouse-only { display: revert; }
+@media (pointer: coarse) { .blocked .touch-only { display: revert; } .blocked .mouse-only { display: none; } }
 /* phones & tablets */
 .jump { display: none; }
 .touch-only { display: none; }
@@ -348,6 +364,26 @@ html.cooking { overflow: hidden; }
       <button id="goBtn" class="primary" type="submit">Get recipe</button>
     </form>
     <p id="status" class="status" role="status"></p>
+    <section id="blocked" class="blocked" aria-labelledby="blkH" hidden>
+      <h3 id="blkH"><span id="blkSite">This site</span> blocks link loading</h3>
+      <p class="blk-sub">Send it from the recipe page instead. It reads the page you have open, so it always works.</p>
+      <ol class="blk-steps">
+        <li><span class="touch-only">Open the recipe in Chrome:</span><span class="mouse-only">Open the recipe:</span> <a id="blkOpen" href="#" target="_blank" rel="noopener">open it ↗</a></li>
+        <li class="touch-only">Tap the address bar, type <b>send</b>, and tap <b>☆ Send Recipe</b>.</li>
+        <li class="mouse-only">Click the <b>Send to Recipe Checklist</b> extension button, or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>.</li>
+      </ol>
+      <details id="blkSetup" class="blk-setup">
+        <summary><span class="touch-only">First time? Set up Send Recipe (1 minute)</span><span class="mouse-only">No extension yet? Set it up</span></summary>
+        <ol class="touch-only">
+          <li>Copy the Send Recipe code: <button class="ghost small" type="button" data-copy-bm>Copy code</button></li>
+          <li>In Chrome, tap <b>⋮</b> then <b>☆</b> to bookmark any page.</li>
+          <li>Tap <b>Edit</b> on the "Bookmarked" message (or ⋮ › Bookmarks, then ⋮ beside it › Edit).</li>
+          <li>Change the name to <b>Send Recipe</b>. Clear the URL, paste the code, and save.</li>
+        </ol>
+        <p class="mouse-only">Download <a href="recipe-checklist-extension.zip" download>the Chrome extension</a>, unzip it, open <code>chrome://extensions</code>, turn on Developer mode, click <b>Load unpacked</b> and pick the folder.</p>
+      </details>
+      <button id="blkClose" class="linkish" type="button">Dismiss</button>
+    </section>
     <div class="helplinks"><button id="toggleSend" class="linkish" type="button">Site blocked? Use the Send button</button><button id="togglePaste" class="linkish" type="button">Paste the page instead</button></div>
     <section id="sendHelp" class="paste" aria-label="Send to Recipe Checklist button">
       <p class="howto" style="margin:0">Some big sites (Allrecipes, Serious Eats, Simply Recipes and others) block link loading. The Send button reads the recipe from the page you already have open, so it works on those too.</p>
@@ -738,23 +774,37 @@ async function loadPage(url) {
   throw err;
 }
 
+// Dotdash Meredith food sites send fetch services a bot check instead of the page.
+const BLOCKED_SITES = { "allrecipes.com": "Allrecipes", "seriouseats.com": "Serious Eats", "simplyrecipes.com": "Simply Recipes", "eatingwell.com": "EatingWell",
+  "foodandwine.com": "Food & Wine", "thespruceeats.com": "The Spruce Eats", "marthastewart.com": "Martha Stewart", "southernliving.com": "Southern Living",
+  "myrecipes.com": "MyRecipes", "realsimple.com": "Real Simple", "bhg.com": "Better Homes & Gardens" };
+function blockedSiteName(u) { const h = hostOf(u); return BLOCKED_SITES[h] || ""; }
+function showBlocked(url, name) {
+  $("blkSite").textContent = name || hostOf(url) || "This site";
+  $("blkOpen").href = url;
+  $("blkSetup").open = !store.get("sentOnce", false);
+  $("blocked").hidden = false;
+  $("sendHelp").classList.remove("open"); $("pasteForm").classList.remove("open");
+  setStatus("");
+  $("blocked").scrollIntoView({ block: "nearest" });
+}
+$("blkClose").addEventListener("click", () => { $("blocked").hidden = true; });
+document.addEventListener("click", e => { const b = e.target.closest("[data-copy-bm]"); if (b) copyText(b, BOOKMARKLET); });
+
 $("urlForm").addEventListener("submit", async e => {
   e.preventDefault();
   const url = $("urlInput").value.trim();
   if (!url) return;
+  $("blocked").hidden = true;
+  const known = blockedSiteName(url);
+  if (known) { showBlocked(url, known); return; }
   busy(true, "Getting the recipe…");
   try {
     const recipe = await loadPage(url);
     remember(recipe); show(recipe); setStatus("");
   } catch (err) {
-    $("sendHelp").classList.add("open");
-    const blockedHere = location.protocol !== "file:" && err.message === "no_fetch";
-    setStatus((err.message === "no_recipe"
-      ? "That site blocked the link loader (it sent a bot check instead of the recipe). Open the recipe and use the Send button below."
-      : blockedHere
-        ? "This preview can't load other websites. Save the file to your PC and double-click it to open it in Chrome or Edge."
-        : "That site blocks link loading. Use the Send button below while you're on the recipe page, or paste the page instead.")
-      + (err.detail ? `  [Details: ${err.detail}]` : ""), true);
+    busy(false);
+    showBlocked(url, "");
   } finally { busy(false); }
 });
 
@@ -1913,6 +1963,8 @@ function handleSent() {
   if (!recipe) { setStatus("That recipe came through garbled. Try the Send button again.", true); return; }
   try { const d = JSON.parse(raw); if (d.t && !recipe.time) recipe.time = d.t; } catch {}
   if (recipe.source) $("urlInput").value = recipe.source;
+  store.set("sentOnce", true);
+  $("blocked").hidden = true;
   remember(recipe); show(recipe); setStatus("");
 }
 
